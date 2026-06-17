@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Design"
+  short_description: "Create an approval-ready test design contract"
+  default_prompt: "Use $test-design to create an evidence-based test design contract for this request."

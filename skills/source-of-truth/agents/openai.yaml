@@ -1,0 +1,4 @@
+interface:
+  display_name: "Source of Truth"
+  short_description: "Resolve conflicting claims with evidence"
+  default_prompt: "Use $source-of-truth to resolve this claim from the available project sources."
