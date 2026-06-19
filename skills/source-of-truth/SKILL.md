@@ -198,8 +198,9 @@ result (`401/403`, rejection) is strong evidence that a guard exists. So:
 
 - "Is this forbidden?" must be resolved from the access-control contract or the
   guard in code — never from a successful runtime response.
-- Runtime can *refute* a "forbidden" expectation only when it returns the block;
-  a success neither confirms nor refutes the design intent on its own.
+- Runtime can *support* a "forbidden" expectation when it returns the block; a
+  success is a divergence to investigate, but it still does not prove design
+  intent on its own.
 
 ## Transition Rules
 
