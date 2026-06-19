@@ -172,6 +172,35 @@ The verdict must contain:
 - recommended next action;
 - next permitted workflow transition.
 
+## Actual Versus Intended Behavior
+
+A failing test asks "what *should* happen", not "what *does* happen". Keep the
+two separate.
+
+- **Actual behavior** (runtime observation: a status code, a rendered screen, a
+  stored value) tells you what the deployed system does now.
+- **Intended behavior** (the contract: implementation code, authorization
+  guard, spec, acceptance criterion) tells you what is correct.
+
+When a project's authority order ranks the contract above runtime, a runtime
+observation that conflicts with the contract is a **finding** (a bug or an
+unannounced change), not a reason to conform the expectation to runtime. Resolve
+the claim from the controlling contract source and report the divergence.
+
+**Do not use the observation under question as its own corroboration.** If the
+claim being resolved is "is this `200` correct?", that same `200` is not
+independent evidence. It is the thing in dispute.
+
+**Negative / permission asymmetry.** A successful result (`2xx`, no error,
+action completed) is weak evidence for "permitted by design": a missing guard
+and a deliberately open operation are indistinguishable at runtime. A *blocked*
+result (`401/403`, rejection) is strong evidence that a guard exists. So:
+
+- "Is this forbidden?" must be resolved from the access-control contract or the
+  guard in code — never from a successful runtime response.
+- Runtime can *refute* a "forbidden" expectation only when it returns the block;
+  a success neither confirms nor refutes the design intent on its own.
+
 ## Transition Rules
 
 - `confirmed`: allow the blocked workflow to continue within the resolved
@@ -189,6 +218,9 @@ systems. Return the verdict to the Orchestrator, which decides the next action.
 - Never invent an authority order, expected behavior, or missing evidence.
 - Never equate implementation behavior with intended behavior unless project
   policy makes implementation authoritative for the claim.
+- Never treat a runtime observation as corroboration of itself, and never treat
+  a successful response as proof that an action is permitted by design (see
+  `Actual Versus Intended Behavior`).
 - Never treat a test case as the highest authority by default.
 - Never hide source conflicts.
 - Never use freshness alone to override a higher-authority source unless the

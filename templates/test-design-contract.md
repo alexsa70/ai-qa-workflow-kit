@@ -5,6 +5,7 @@
 - Type: `test-design`
 - Status: `draft`
 - Project:
+- Requirement source: `<outline url | jira key | testmo id | free-text | none>`
 - Scope:
 - Exclusions:
 - Evidence:

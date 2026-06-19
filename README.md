@@ -19,7 +19,8 @@ verification.
 
 ```text
 ai-qa-workflow-kit/
-├── AGENTS.md
+├── AGENTS.md                     # Codex / OpenAI entry point
+├── CLAUDE.md                     # Claude entry point (twin of AGENTS.md)
 ├── README.md
 ├── agents/
 │   └── qa-orchestrator.md
@@ -27,17 +28,22 @@ ai-qa-workflow-kit/
 │   ├── source-of-truth/
 │       ├── SKILL.md
 │       ├── agents/
-│       │   └── openai.yaml
+│       │   ├── openai.yaml
+│       │   └── claude.yaml
 │       └── assets/
 │           └── source-verdict.md
 │   ├── test-design/
 │       ├── SKILL.md
-│       └── agents/
-│           └── openai.yaml
+│       ├── agents/
+│       │   ├── openai.yaml
+│       │   └── claude.yaml
+│       └── assets/
+│           └── intake-sources.md
 │   └── test-implementation/
 │       ├── SKILL.md
 │       └── agents/
-│           └── openai.yaml
+│           ├── openai.yaml
+│           └── claude.yaml
 ├── docs/
 │   ├── architecture.md
 │   ├── component-inventory.md
@@ -47,6 +53,15 @@ ai-qa-workflow-kit/
     ├── project-context.md
     └── test-design-contract.md
 ```
+
+## Platform Support
+
+The kit runs on both Codex / OpenAI and Claude. `AGENTS.md` and `CLAUDE.md` are
+twin entry points that route to the same QA Orchestrator. Each skill ships
+platform launch metadata in `skills/<name>/agents/` (`openai.yaml` and
+`claude.yaml`); the shared behavior lives in each `SKILL.md`. `test-design` can
+take its requirement from an Outline link, a Jira issue, a Testmo case or run,
+or free text (see `skills/test-design/assets/intake-sources.md`).
 
 ## Design Documents
 

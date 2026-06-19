@@ -1,6 +1,6 @@
 ---
 name: test-design
-description: Create or update a concise, evidence-based Test Design Contract before automated test implementation. Use when a QA request requires defining scope, actor-target role combinations, coverage, test cases, expected results, API response assertions, cleanup, or an approval-ready implementation handoff. Also use when existing proposed test cases must be normalized into a durable approved design. Do not use for writing test code, executing tests, or resolving unknown product behavior without source-of-truth.
+description: Create or update a concise, evidence-based Test Design Contract before automated test implementation, and propose new test coverage from a requirement source. Use when a QA request requires defining scope, actor-target role combinations, coverage, test cases, expected results, API response assertions, cleanup, or an approval-ready implementation handoff, or when the requirement arrives as an Outline document link, a Jira issue, a Testmo case or run, or free-text instructions that must be turned into a proposed design. Also use when existing proposed test cases must be normalized into a durable approved design. Do not use for writing test code, executing tests, or resolving unknown product behavior without source-of-truth.
 ---
 
 # Test Design
@@ -16,6 +16,7 @@ report.
 Obtain:
 
 - the user objective;
+- the requirement source (see `Requirement Intake`);
 - target project and project context;
 - intended test level or target area when known;
 - available evidence and applicable authority policy;
@@ -26,9 +27,72 @@ Obtain:
 If the target project, artifact location, or required context is missing, return
 a blocker to the QA Orchestrator.
 
+## Requirement Intake
+
+A requirement may arrive in any of these forms. Resolve it to normalized,
+attributed evidence before designing cases.
+
+- **Outline document link**: a knowledge-base page describing a feature,
+  decision, or behavior.
+- **Jira issue**: a ticket, story, bug, or epic key or URL.
+- **Testmo case or run**: an existing manual or automated case, suite, or run.
+- **Free text**: instructions written directly by the user.
+
+Intake source priority is `requirement input`, not `controlling source`. A
+requirement source states *what the user wants covered*; it does not by itself
+prove *how the product behaves*. Expected behavior taken from any source is a
+claim until confirmed against the project authority order through
+`source-of-truth`.
+
+Use the project context to read each source:
+
+- Read an Outline page, Jira issue, or Testmo entry only through a connector,
+  command, or path that project context authorizes. If no authorized access
+  exists, ask the user to paste the relevant content and record it as
+  `user-provided`.
+- Never invent ticket contents, acceptance criteria, or Testmo steps that were
+  not retrieved or pasted.
+- Preserve the source identifier (Outline URL, Jira key, Testmo case ID) for
+  traceability and for the implementation handoff.
+
+See `assets/intake-sources.md` for per-source handling, mixed-source rules, and
+a claim ledger format.
+
 ## Workflow
 
-### 1. Establish The Design Contract
+### 1. Resolve The Requirement Source
+
+Record the intake before any design work:
+
+```text
+Source type:        outline | jira | testmo | free-text | mixed
+Source reference:   <url / issue key / case or run id / "user-provided">
+Access method:      <connector / command / path / pasted by user>
+Retrieved:          yes | no (and why)
+Stated requirement: <one-paragraph normalized summary>
+Stated expected behavior (claims): <bulleted, each marked unverified>
+Stated scope hints: <areas, actors, endpoints, screens named by the source>
+Out-of-scope notes: <anything the source explicitly excludes>
+Open questions:     <ambiguities the source does not resolve>
+```
+
+Rules:
+
+- Split the source into a `requirement` (what to cover) and `claims` (asserted
+  behavior). Mark every claim `unverified` until `source-of-truth` confirms it.
+- For a Testmo case, treat existing steps and expected results as *prior
+  design*, not as confirmed product behavior; reconcile them with the
+  controlling source before reuse, and preserve the Testmo ID for the case.
+- For a Jira issue, separate acceptance criteria (requirement) from comments and
+  speculation (context only).
+- For free text, restate the requirement back in normalized form so scope is
+  explicit before approval.
+- If the source names behavior that conflicts with project authority, do not
+  silently pick one. Route the conflict through `source-of-truth`.
+
+Then continue to establish the contract.
+
+### 2. Establish The Design Contract
 
 Record:
 
@@ -43,7 +107,7 @@ Constraints:
 
 Keep the scope narrow enough to approve and implement as one coherent unit.
 
-### 2. Resolve Behavior-Affecting Unknowns
+### 3. Resolve Behavior-Affecting Unknowns
 
 Identify unknowns that can change:
 
@@ -62,7 +126,7 @@ tests authoritative.
 If a required claim is `unresolved`, set the artifact to `blocked`. If it is
 `provisional`, follow the confidence gate defined by project context.
 
-### 3. Inspect Existing Test Architecture
+### 4. Inspect Existing Test Architecture
 
 Read only the smallest relevant set of project files. Identify:
 
@@ -75,7 +139,7 @@ Read only the smallest relevant set of project files. Identify:
 Treat implementation as evidence of repository convention, not automatically
 as evidence of intended product behavior.
 
-### 4. Build The Coverage Model
+### 5. Build The Coverage Model
 
 Select only dimensions relevant to the request, such as:
 
@@ -123,7 +187,7 @@ names for the same role, state, field, route, or result, resolve the conflict
 through `source-of-truth`. An unresolved naming or contract conflict blocks the
 artifact; do not choose one spelling silently.
 
-### 5. Define Test Cases
+### 6. Define Test Cases
 
 Assign stable IDs such as `TC-001`.
 
@@ -174,7 +238,7 @@ Avoid repetition:
 - keep implementation file lists and helper changes in a short handoff;
 - do not copy source code behavior into narrative paragraphs.
 
-### 6. Create Or Update The Artifact
+### 7. Create Or Update The Artifact
 
 Use `../../templates/test-design-contract.md`.
 
@@ -193,7 +257,7 @@ Set status:
 
 Never set `approved` without an explicit recorded user decision.
 
-### 7. Request Approval
+### 8. Request Approval
 
 Present:
 
@@ -216,16 +280,18 @@ Approval applies only to recorded case IDs and conditions. Material changes to
 approved behavior, scope, actors, assertions, or cleanup require renewed
 approval.
 
-### 8. Return To The Orchestrator
+### 9. Return To The Orchestrator
 
 Report:
 
 ```text
 Artifact:
 Status:
+Requirement source:
 Confirmed scope:
 Case IDs:
 Evidence:
+Unverified claims from source:
 Unknowns or risks:
 Approval state:
 Next permitted transition:
@@ -245,6 +311,10 @@ The QA Orchestrator decides whether implementation may begin.
 - Do not move to approval with an unresolved source conflict.
 - Do not invent cleanup completion behavior.
 - Do not omit an independent coverage combination without evidence.
+- Do not treat a requirement source (Outline, Jira, Testmo, free text) as proof
+  of product behavior; confirm asserted behavior through `source-of-truth`.
+- Do not invent the contents of a ticket, document, or Testmo case that was not
+  retrieved through an authorized access method or pasted by the user.
 - Do not hardcode credentials, secrets, environment values, or test data not
   authorized by project policy.
 - Do not mark an artifact `implemented`; implementation and verification own

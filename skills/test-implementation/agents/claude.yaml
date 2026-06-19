@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Implementation"
+  short_description: "Implement and verify approved test cases"
+  default_prompt: "Use the test-implementation skill to implement the approved test cases, run their authorized QA verification, and record the results."

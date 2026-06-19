@@ -122,7 +122,9 @@ Use `test-design` when:
 - implementation requires an agreed test scope;
 - expected coverage, actors, assertions, or cleanup must be defined;
 - approval must survive the current conversation;
-- existing proposed cases must become a durable implementation contract.
+- existing proposed cases must become a durable implementation contract;
+- a requirement arrives as an Outline link, Jira issue, Testmo case or run, or
+  free text and must become a proposed, approval-ready design.
 
 `test-design` produces or updates a Test Design Contract. It does not implement
 tests and cannot approve its own artifact.
