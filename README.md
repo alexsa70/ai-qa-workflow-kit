@@ -12,10 +12,11 @@ The kit separates:
 
 ## First Version
 
-This version contains the reusable QA Orchestrator and the `source-of-truth`,
-`test-design`, `test-implementation`, `code-review`, and `bug-fixing` skills.
-The approved Test Design Contract remains the durable artifact across design,
-implementation, verification, review, and repair.
+This version contains the reusable QA Orchestrator and the
+`api-layered-architecture`, `source-of-truth`, `test-design`,
+`test-implementation`, `code-review`, and `bug-fixing` skills. The approved
+Test Design Contract remains the durable artifact across architecture mapping,
+design, implementation, verification, review, and repair.
 
 ```text
 ai-qa-workflow-kit/
@@ -25,6 +26,11 @@ ai-qa-workflow-kit/
 ├── agents/
 │   └── qa-orchestrator.md
 ├── skills/
+│   ├── api-layered-architecture/
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       ├── openai.yaml
+│   │       └── claude.yaml
 │   ├── source-of-truth/
 │   │   ├── SKILL.md
 │   │   ├── agents/
@@ -114,6 +120,7 @@ Use this when connecting a new repository to the workflow kit.
      runtime behavior;
    - allowed paths for tests, clients, schemas, assertions, fixtures, and
      artifacts;
+   - API automation architecture layers, when the target is an API project;
    - autonomous QA execution policy and cases that still require separate
      approval.
 
@@ -172,6 +179,18 @@ workflow kit.
 
 Use this when endpoint behavior, permissions, payloads, response contracts, or
 project policy are unclear.
+
+### API Layered Architecture Map
+
+```text
+Используй api-layered-architecture и определи layer map этого API test
+project. Укажи transport client, service/resource clients, schemas, factories,
+assertion helpers, tests, layer violations и recommended next action.
+Не изменяй файлы.
+```
+
+Use this before connecting or refactoring an API project, or before implementing
+tests in a project whose API automation structure is not yet explicit.
 
 ### Test Design Contract
 

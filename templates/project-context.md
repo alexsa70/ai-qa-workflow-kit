@@ -88,6 +88,20 @@ question.
 - Public or internal API policy:
 - Required approval gates:
 
+## API Automation Architecture
+
+- Architecture type:
+- Transport client:
+- Service/resource clients:
+- Schemas:
+- Factories:
+- Assertion helpers:
+- Tests:
+- Raw HTTP in tests:
+- Inline payloads in tests:
+- Endpoint path ownership:
+- Cleanup ownership:
+
 ## Available Roles And Skills
 
 - Available specialist agents:

@@ -1,0 +1,4 @@
+interface:
+  display_name: "API Layered Architecture"
+  short_description: "Guide layered API test structure"
+  default_prompt: "Use $api-layered-architecture to map or enforce the API test layers before designing, implementing, reviewing, or fixing tests."

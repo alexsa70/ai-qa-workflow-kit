@@ -133,6 +133,19 @@ If behavior required by test design is unknown or conflicting, resolve that
 claim through `source-of-truth` before the design moves to
 `awaiting-approval`.
 
+Use `api-layered-architecture` when:
+
+- an API project needs its automation layers mapped or evaluated;
+- a test design or implementation handoff must identify transport, client,
+  schema, factory, assertion, and test responsibilities;
+- a review or bug fix needs to decide which layer owns a defect;
+- raw HTTP, inline payloads, duplicated endpoint paths, or missing schema/
+  business assertions may violate the project architecture.
+
+`api-layered-architecture` defines structure, not product behavior. Use
+`source-of-truth` for expected statuses, payloads, permissions, side effects,
+and other product claims.
+
 Use `test-implementation` when:
 
 - an approved Test Design Contract must be translated into automated tests;
