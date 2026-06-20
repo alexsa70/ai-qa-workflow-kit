@@ -152,6 +152,21 @@ scope, or destructive actions not already defined by the approved contract.
 If implementation reveals a material design change, stop and route the
 contract back through `test-design` and the approval gate.
 
+Use `code-review` when:
+
+- implemented tests, clients, schemas, fixtures, or framework changes must be
+  checked against an approved Test Design Contract;
+- live verification, cleanup, or traceability evidence needs an independent
+  review;
+- the user asks for a review of QA automation changes;
+- meaningful implementation or bug-fix changes need a completion gate before
+  being treated as accepted.
+
+`code-review` reports findings first and must not edit code, approval records,
+or expected results unless the user explicitly switches the task to fixing.
+If review reveals unclear intended behavior, route that claim through
+`source-of-truth` instead of changing expectations.
+
 ## Artifact Rule
 
 Create or update an artifact only when at least one condition applies:

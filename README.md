@@ -13,9 +13,9 @@ The kit separates:
 ## First Version
 
 This version contains the reusable QA Orchestrator and the `source-of-truth`,
-`test-design`, and `test-implementation` skills. The approved Test Design
-Contract remains the durable artifact across design, implementation, and
-verification.
+`test-design`, `test-implementation`, and `code-review` skills. The approved
+Test Design Contract remains the durable artifact across design,
+implementation, verification, and review.
 
 ```text
 ai-qa-workflow-kit/
@@ -26,20 +26,25 @@ ai-qa-workflow-kit/
 │   └── qa-orchestrator.md
 ├── skills/
 │   ├── source-of-truth/
-│       ├── SKILL.md
-│       ├── agents/
-│       │   ├── openai.yaml
-│       │   └── claude.yaml
-│       └── assets/
-│           └── source-verdict.md
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── openai.yaml
+│   │   │   └── claude.yaml
+│   │   └── assets/
+│   │       └── source-verdict.md
 │   ├── test-design/
-│       ├── SKILL.md
-│       ├── agents/
-│       │   ├── openai.yaml
-│       │   └── claude.yaml
-│       └── assets/
-│           └── intake-sources.md
-│   └── test-implementation/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── openai.yaml
+│   │   │   └── claude.yaml
+│   │   └── assets/
+│   │       └── intake-sources.md
+│   ├── test-implementation/
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       ├── openai.yaml
+│   │       └── claude.yaml
+│   └── code-review/
 │       ├── SKILL.md
 │       └── agents/
 │           ├── openai.yaml
@@ -211,7 +216,7 @@ pending or blocked by environment availability.
 ### Review Implemented Tests
 
 ```text
-Проведи code review реализации для test-design/<area>/<contract-name>.md.
+Используй code-review для реализации test-design/<area>/<contract-name>.md.
 Проверь соответствие approved variants, response assertions, cleanup,
 traceability и verification evidence. Findings first.
 ```

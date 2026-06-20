@@ -74,6 +74,7 @@ and AI-platform details.
 | Candidate | Best source | Reusable procedure | Coupling to isolate | Decision | Priority |
 |---|---|---|---|---|---:|
 | `source-of-truth` | Current kit, extracted from `/Users/alex/MyRepos/qa/.claude/skills/source-of-truth` | Resolve conflicting sources using project-defined authority, freshness, evidence, and confidence | Project source policy and available integrations | `adopt` | P0 |
+| `code-review` | Current kit, extracted from review candidates and existing Codex review skills | Review QA automation changes against approved contracts, source evidence, cleanup, traceability, and verification | Stack-specific review commands and adapters | `adopt` | P0 |
 | `review-verification-protocol` | `/Users/alex/.codex/skills/review-verification-protocol` | Verify findings before reporting them | Codex skill references only | `adopt` | P0 |
 | `consistency-sweep` | `/Users/alex/MyRepos/qa/.claude/skills/consistency-sweep` | Detect unresolved placeholders after external writes | Current integration names and default patterns | `adopt` | P0 |
 | `spec-first-test` | `/Users/alex/MyRepos/qa/.claude/skills/spec-first-test` | Move from confirmed spec and test design to API automation | Kal Sense sources, Claude gates, pytest architecture | `extract` | P1 |

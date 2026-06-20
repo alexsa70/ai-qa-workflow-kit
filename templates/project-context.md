@@ -106,6 +106,15 @@ question.
 - Traceability format:
 - Artifact update rule:
 
+## Code Review Policy
+
+- Required review targets:
+- Review evidence:
+- Allowed review commands:
+- Stack-specific review adapters:
+- Findings format:
+- Review completion rule:
+
 ## Known Constraints
 
 - None recorded.

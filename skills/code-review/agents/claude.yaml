@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Review QA changes against contracts"
+  default_prompt: "Use the code-review skill to review the implemented QA changes against the approved contract, source evidence, cleanup, traceability, and verification results."
