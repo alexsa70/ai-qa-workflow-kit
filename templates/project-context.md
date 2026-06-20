@@ -115,6 +115,17 @@ question.
 - Findings format:
 - Review completion rule:
 
+## Bug Fixing Policy
+
+- Allowed fix paths:
+- Reproduction commands:
+- Autonomous rerun scope:
+- Product bug handoff:
+- Environment blocker handling:
+- Contract mismatch handling:
+- Cleanup repair policy:
+- Artifact update rule:
+
 ## Known Constraints
 
 - None recorded.

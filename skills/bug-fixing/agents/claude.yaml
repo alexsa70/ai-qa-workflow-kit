@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bug Fixing"
+  short_description: "Classify and repair QA failures"
+  default_prompt: "Use the bug-fixing skill to reproduce, classify, and fix this QA automation failure while preserving approved expectations and cleanup safety."

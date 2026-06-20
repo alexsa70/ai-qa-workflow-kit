@@ -167,6 +167,21 @@ or expected results unless the user explicitly switches the task to fixing.
 If review reveals unclear intended behavior, route that claim through
 `source-of-truth` instead of changing expectations.
 
+Use `bug-fixing` when:
+
+- a test, client, schema, fixture, factory, assertion, cleanup step, or
+  framework command fails;
+- live QA execution produces a failed or blocked result that needs diagnosis;
+- a failure must be classified as framework bug, product bug, environment
+  issue, contract mismatch, or insufficient evidence;
+- a minimal repair and re-verification are needed without changing approved
+  expectations.
+
+`bug-fixing` may edit code only for framework defects within project-configured
+fix scope. It must not weaken assertions, hide product bugs, update approval
+records, or change expected behavior without `source-of-truth` and renewed
+design approval.
+
 ## Artifact Rule
 
 Create or update an artifact only when at least one condition applies:

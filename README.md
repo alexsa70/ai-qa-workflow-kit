@@ -13,9 +13,9 @@ The kit separates:
 ## First Version
 
 This version contains the reusable QA Orchestrator and the `source-of-truth`,
-`test-design`, `test-implementation`, and `code-review` skills. The approved
-Test Design Contract remains the durable artifact across design,
-implementation, verification, and review.
+`test-design`, `test-implementation`, `code-review`, and `bug-fixing` skills.
+The approved Test Design Contract remains the durable artifact across design,
+implementation, verification, review, and repair.
 
 ```text
 ai-qa-workflow-kit/
@@ -44,7 +44,12 @@ ai-qa-workflow-kit/
 │   │   └── agents/
 │   │       ├── openai.yaml
 │   │       └── claude.yaml
-│   └── code-review/
+│   ├── code-review/
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       ├── openai.yaml
+│   │       └── claude.yaml
+│   └── bug-fixing/
 │       ├── SKILL.md
 │       └── agents/
 │           ├── openai.yaml
@@ -223,3 +228,15 @@ traceability и verification evidence. Findings first.
 
 Use this after implementation or live execution to check for framework and
 contract drift.
+
+### Diagnose And Fix A Failure
+
+```text
+Используй bug-fixing для падения <failing command or test path>.
+Классифицируй причину как framework bug, product bug, environment issue,
+contract mismatch или insufficient evidence. Сохрани approved expectations,
+cleanup safety и verification evidence.
+```
+
+Use this when implementation, live QA execution, cleanup, clients, schemas,
+fixtures, or assertions fail and the workflow needs repair or a clear blocker.
