@@ -88,6 +88,8 @@ or free text (see `skills/test-design/assets/intake-sources.md`).
   reusable workflow artifact.
 - `docs/test-implementation.md` defines scope lock, traceability, and layered
   verification for implementation.
+- `docs/personal-consumer-contexts.md` explains how to use the kit privately
+  with shared team repositories without committing kit-specific files there.
 
 ## How A Project Connects
 
