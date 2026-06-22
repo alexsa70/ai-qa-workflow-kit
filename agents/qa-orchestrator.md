@@ -195,6 +195,16 @@ fix scope. It must not weaken assertions, hide product bugs, update approval
 records, or change expected behavior without `source-of-truth` and renewed
 design approval.
 
+Use `testmo-csv` when:
+
+- the user wants to export or convert ready automated tests (a file, a
+  directory, or a named set) into a CSV for import into Testmo / TestMO;
+- folder, name, description, preconditions, steps, expected results, automated
+  flag, and tags must be derived from existing tests.
+
+`testmo-csv` is read-only over tests and produces only a CSV. It does not write
+or modify tests, design new coverage, or push to Testmo via API.
+
 ## Artifact Rule
 
 Create or update an artifact only when at least one condition applies:

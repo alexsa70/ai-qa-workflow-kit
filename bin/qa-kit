@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# qa-kit — launch Claude or Codex in "kit-only mode".
+#
+# Governance is the AI QA Workflow Kit orchestrator ONLY. The target repo's own
+# CLAUDE.md / AGENTS.md / installed skills/agents are ignored. The kit is the
+# active project (cwd); the target repo is treated as data, with facts read from
+# its ai-workflow/project-context.md.
+#
+# Usage:
+#   qa-kit [target-path] [claude|codex]
+#
+# Defaults:
+#   target-path : $QA_KIT_TARGET, else /Users/alexanderle/workspace/QA/api-tests
+#   tool        : $QA_KIT_TOOL,   else claude
+#
+# Examples:
+#   qa-kit                                   # api-tests, claude
+#   qa-kit ~/workspace/QA/e2e-ui-tests       # e2e suite, claude
+#   qa-kit ~/workspace/QA/api-tests codex    # api-tests, codex
+
+set -euo pipefail
+
+# Kit dir = parent of this script's dir (portable; no hardcoded user path).
+KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+TARGET="${1:-${QA_KIT_TARGET:-/Users/alexanderle/workspace/QA/api-tests}}"
+TOOL="${2:-${QA_KIT_TOOL:-claude}}"
+
+if [ ! -d "$TARGET" ]; then
+  echo "qa-kit: target path not found: $TARGET" >&2
+  exit 1
+fi
+
+read -r -d '' PROMPT <<EOF || true
+Режим kit-only. Governance — строго AI QA Workflow Kit:
+- Единая точка входа: ${KIT_DIR}/agents/qa-orchestrator.md.
+- Target project: ${TARGET}.
+- Факты проекта бери ТОЛЬКО из ${TARGET}/ai-workflow/project-context.md.
+- Используй ТОЛЬКО скиллы kit (source-of-truth, test-design, test-implementation,
+  bug-fixing, code-review, api-layered-architecture, testmo-csv).
+- Игнорируй правила и инструменты самого проекта: его CLAUDE.md, AGENTS.md,
+  .claude/skills, .claude/agents и корневой QA/CLAUDE.md.
+- Помни authority order из project-context: backend-код выше runtime; для
+  негативных/permission-ассертов решай по гарду в коде, не по успешному ответу.
+Подтверди режим одной строкой и жди задачу.
+EOF
+
+cd "$KIT_DIR"
+
+case "$TOOL" in
+  claude) exec claude "$PROMPT" ;;
+  codex)  exec codex "$PROMPT" ;;
+  *) echo "qa-kit: unknown tool '$TOOL' (use claude|codex)" >&2; exit 1 ;;
+esac

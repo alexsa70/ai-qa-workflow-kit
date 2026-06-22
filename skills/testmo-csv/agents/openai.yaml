@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testmo CSV"
+  short_description: "Export ready tests to a Testmo-import CSV"
+  default_prompt: "Use $testmo-csv to generate a Testmo-import CSV from the specified tests (file, directory, or list)."

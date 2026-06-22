@@ -55,11 +55,20 @@ ai-qa-workflow-kit/
 │   │   └── agents/
 │   │       ├── openai.yaml
 │   │       └── claude.yaml
-│   └── bug-fixing/
+│   ├── bug-fixing/
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       ├── openai.yaml
+│   │       └── claude.yaml
+│   └── testmo-csv/
 │       ├── SKILL.md
-│       └── agents/
-│           ├── openai.yaml
-│           └── claude.yaml
+│       ├── agents/
+│       │   ├── openai.yaml
+│       │   └── claude.yaml
+│       ├── assets/
+│       │   └── testmo-csv-format.md
+│       └── scripts/
+│           └── tests_to_testmo_csv.py
 ├── docs/
 │   ├── architecture.md
 │   ├── component-inventory.md
@@ -78,6 +87,9 @@ platform launch metadata in `skills/<name>/agents/` (`openai.yaml` and
 `claude.yaml`); the shared behavior lives in each `SKILL.md`. `test-design` can
 take its requirement from an Outline link, a Jira issue, a Testmo case or run,
 or free text (see `skills/test-design/assets/intake-sources.md`).
+
+To run a client governed by the kit only — ignoring a target repo's own rules
+and skills — use `bin/qa-kit` or follow `docs/kit-only-mode.md`.
 
 ## Design Documents
 
