@@ -257,6 +257,23 @@ Set status:
 
 Never set `approved` without an explicit recorded user decision.
 
+#### Companion Readable Spreadsheet
+
+Whenever the contract `.md` is written or updated, also write a companion
+`.xlsx` next to it — same directory, same base name, `.xlsx` extension (e.g.
+`get-files-filters.md` → `get-files-filters.xlsx`). It presents the same cases
+in a readable, one-row-per-case table for reviewers who prefer a spreadsheet.
+
+- The `.md` contract stays the source of truth; the `.xlsx` is a derived,
+  read-friendly view. Never let them diverge — regenerate the `.xlsx` on every
+  contract change.
+- Generate it from the contract with
+  `scripts/contract_to_xlsx.py <contract.md>` (kit reference script, uses
+  `openpyxl`). Columns and formatting are defined in
+  `assets/contract-xlsx-format.md`.
+- Do not invent cases or fields in the spreadsheet that are not in the
+  contract; it is a projection of the contract, nothing more.
+
 ### 8. Request Approval
 
 Present:
@@ -286,6 +303,7 @@ Report:
 
 ```text
 Artifact:
+Companion spreadsheet:
 Status:
 Requirement source:
 Confirmed scope:
@@ -311,6 +329,9 @@ The QA Orchestrator decides whether implementation may begin.
 - Do not move to approval with an unresolved source conflict.
 - Do not invent cleanup completion behavior.
 - Do not omit an independent coverage combination without evidence.
+- Keep the companion `.xlsx` a faithful projection of the `.md` contract:
+  regenerate it on every contract change, never add cases or fields it lacks,
+  and never treat it as the source of truth.
 - Do not treat a requirement source (Outline, Jira, Testmo, free text) as proof
   of product behavior; confirm asserted behavior through `source-of-truth`.
 - Do not invent the contents of a ticket, document, or Testmo case that was not

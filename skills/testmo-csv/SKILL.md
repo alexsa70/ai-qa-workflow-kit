@@ -112,3 +112,9 @@ Next action:
 - Do not push to Testmo or call any Testmo API; this skill only writes a CSV.
 - Do not deduplicate or rename against live Testmo state; folder/title hygiene
   against existing Testmo is a separate step.
+- This skill's column set and procedure are the single source of truth for the
+  Testmo CSV. When invoked, they take precedence over any global or user-level
+  `CLAUDE.md` TestMO/CSV column preference. Do not substitute global columns
+  (e.g. `Priority` / `Type`) or build the CSV inline "from memory"; use this
+  skill's header and the extractor. Project context may extend the column set
+  only when it explicitly defines a project Testmo convention.

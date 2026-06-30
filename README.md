@@ -43,8 +43,11 @@ ai-qa-workflow-kit/
 │   │   ├── agents/
 │   │   │   ├── openai.yaml
 │   │   │   └── claude.yaml
-│   │   └── assets/
-│   │       └── intake-sources.md
+│   │   ├── assets/
+│   │   │   ├── intake-sources.md
+│   │   │   └── contract-xlsx-format.md
+│   │   └── scripts/
+│   │       └── contract_to_xlsx.py
 │   ├── test-implementation/
 │   │   ├── SKILL.md
 │   │   └── agents/

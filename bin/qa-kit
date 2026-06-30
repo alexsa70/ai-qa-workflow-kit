@@ -40,6 +40,12 @@ read -r -d '' PROMPT <<EOF || true
   bug-fixing, code-review, api-layered-architecture, testmo-csv).
 - Игнорируй правила и инструменты самого проекта: его CLAUDE.md, AGENTS.md,
   .claude/skills, .claude/agents и корневой QA/CLAUDE.md.
+- Для Testmo CSV игнорируй глобальный ~/.claude/CLAUDE.md и любые глобальные
+  преференции по колонкам/формату — формат и процедуру бери ТОЛЬКО из kit-скилла
+  testmo-csv (его SKILL.md + экстрактор scripts/tests_to_testmo_csv.py). Не строй
+  CSV инлайн «из памяти» и не подмешивай глобальные колонки (Priority/Type и т.п.).
+- В целом для задач, которыми владеет kit-скилл, приоритет у скилла над любыми
+  глобальными рецептами.
 - Помни authority order из project-context: backend-код выше runtime; для
   негативных/permission-ассертов решай по гарду в коде, не по успешному ответу.
 Подтверди режим одной строкой и жди задачу.
