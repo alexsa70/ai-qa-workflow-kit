@@ -114,6 +114,16 @@ def parse_parametrize(dec):
     return pmap
 
 
+def _mark_names(decorator_list):
+    """pytest.mark.<name> names on a decorator list (works for class or function)."""
+    marks = []
+    for d in decorator_list:
+        node = d.func if isinstance(d, ast.Call) else d
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Attribute) and node.value.attr == "mark":
+            marks.append(node.attr)
+    return marks
+
+
 def fn_info(fn):
     title = None
     marks = []
@@ -147,9 +157,12 @@ def _ast_info(files):
         fname = os.path.basename(cf)
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
+                # pytest applies class-level markers to every test method; inherit them.
+                class_marks = _mark_names(node.decorator_list)
                 for it in node.body:
                     if isinstance(it, (ast.FunctionDef, ast.AsyncFunctionDef)) and it.name.startswith("test"):
                         t, mk, pm, calls = fn_info(it)
+                        mk = mk + [m for m in class_marks if m not in mk]
                         out[(fname, node.name, it.name)] = {"title": t, "marks": mk, "pmap": pm, "calls": calls}
                         out.setdefault((fname, None, it.name), {"title": t, "marks": mk, "pmap": pm, "calls": calls})
             elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test"):
