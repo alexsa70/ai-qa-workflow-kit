@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coverage Matrix"
+  short_description: "Build a per-endpoint test-coverage workbook from the test suite"
+  default_prompt: "Use $coverage-matrix to build (or refresh) a per-endpoint test-coverage workbook for this service: assemble the endpoint list from the source of truth, run the builder over the repo's tests, fold in system/E2E tests, and report covered vs uncovered endpoints."

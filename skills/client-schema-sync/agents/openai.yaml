@@ -1,0 +1,4 @@
+interface:
+  display_name: "Client/Schema Sync"
+  short_description: "Sync API clients and schemas with the backend contract"
+  default_prompt: "Use $client-schema-sync to refresh the configured backend checkout, diff the public API contract since the last sync, and reconcile this project's API clients and schemas under explicit per-item approval."
