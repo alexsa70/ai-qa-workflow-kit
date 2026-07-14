@@ -57,24 +57,40 @@ invent polling, retries, timeouts, or terminal states.
 - Request actor:
 - Target variants:
 - Given:
-- When:
-- Then:
-  - 
-- API response:
-  - Status:
-  - Body/schema:
-  - Business assertions:
-  - Headers: `not applicable` because ...
-  - Error contract: `not applicable` because ...
-  - Side effects:
+
+#### Steps
+
+1. <action performed in this step>
+   - Request: `<METHOD> <path>` (omit for a non-request step, e.g. a UI action
+     or a pure precondition)
+   - Example payload: `<minimal illustrative payload>` or `not applicable`
+   - Pass criteria:
+     - Status: `<code>` (mandatory whenever the step issues a request)
+     - Message: `<verified response message or key body field>` or
+       `not applicable` because ...
+     - Value checks: `<field> = <value>`; repeat per field, or
+       `not applicable`
+     - Schema: `not applicable` because ... (name it when a contract applies)
+     - Headers: `not applicable` because ...
+     - Error contract: `not applicable` because ... (negative steps only)
+     - Side effects: `<observable state change>` or `not applicable`
+2. <next step, if the case needs more than one action to prove the behavior>
+   - ...
 - Cleanup:
 - Evidence:
 
-Repeat for each distinct behavior. Keep stable case IDs after approval.
+Repeat for each distinct behavior. Keep stable case IDs after approval. A
+single-action case is still a one-step list; add steps only when more than one
+request or observable action is needed to prove the behavior (e.g. create,
+then fetch, to verify persisted state).
 
-For API cases, `Status` is mandatory. Every other API response field must have
-a verified expectation or `not applicable` with a reason. Schema validation
-does not replace assertions for business-significant values.
+For every request step, `Status` is mandatory. Every other pass-criteria field
+must have a verified expectation or `not applicable` with a reason. Schema
+validation does not replace assertions for business-significant values.
+Example payloads illustrate shape, not proof of behavior: build them from a
+confirmed schema, fixture, or evidence already cited for the case, and mark
+illustrative placeholders (e.g. `<uuid>`, `"example"`) clearly instead of
+presenting an invented value as confirmed.
 
 ## Handoff
 

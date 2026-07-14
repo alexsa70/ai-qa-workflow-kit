@@ -195,6 +195,23 @@ fix scope. It must not weaken assertions, hide product bugs, update approval
 records, or change expected behavior without `source-of-truth` and renewed
 design approval.
 
+Use `client-schema-sync` when:
+
+- the backend's public API contract may have changed since the project's
+  clients and schemas were last reconciled;
+- the user asks to sync, refresh, or check API clients/schemas against a
+  backend repository;
+- generated or hand-maintained API clients and schemas need to be brought up
+  to date with a live backend, with the resulting edits gated by approval.
+
+`client-schema-sync` may refresh the project-configured backend checkout
+(fetch and fast-forward pull only) when project context pre-authorizes it for
+this skill, and may edit only the project's API clients and schemas, and only
+after explicit per-item approval. It must not edit tests, fixtures, or
+factories, and must not modify backend application code. Route any resulting
+test-coverage or implementation follow-up through `test-design` or
+`test-implementation`.
+
 Use `testmo-csv` when:
 
 - the user wants to export or convert ready automated tests (a file, a

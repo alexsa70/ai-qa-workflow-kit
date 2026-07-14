@@ -136,6 +136,15 @@ Read only the smallest relevant set of project files. Identify:
 - data creation and cleanup patterns;
 - allowed static, collection, isolated, and live verification commands.
 
+When project context names API client and schema locations, read them before
+drafting a step's request or example payload. A project-maintained client or
+schema is the fastest, most current source for a request's method, path, and
+field shape when project context states it is kept in sync with the system
+under test. Use it to build the step's `Request`, `Example payload`, and
+`Schema` fields. It still proves structure only, not behavior: confirm
+asserted status codes, business rules, and side effects through
+`source-of-truth` and the project authority order.
+
 Treat implementation as evidence of repository convention, not automatically
 as evidence of intended product behavior.
 
@@ -196,33 +205,52 @@ For every case specify:
 - target and priority;
 - request actor;
 - target role/state variants when applicable;
-- essential preconditions and test data;
-- action;
-- observable assertions;
+- essential preconditions and test data (`Given`);
+- a numbered sequence of steps (`Steps`);
 - cleanup;
 - evidence reference.
 
 Do not include a case whose expected result is unresolved.
 
-For every API case, define an explicit API Response Contract:
+#### Write Numbered Steps, Not A Single Action
 
-- expected HTTP status;
-- expected body shape or absence of body;
-- response schema when the response is structured and a contract is available;
-- required headers when contractually relevant;
-- field-level assertions for business-significant values;
-- error body and error fields for negative cases;
-- observable side effects or persistence checks when the operation changes
-  state.
+Break the case into a numbered list of steps whenever more than one request or
+observable action is needed to prove the behavior (for example: create a
+resource, then fetch it to confirm persisted state). A single-action case is
+still a one-step list.
 
-Expected HTTP status is always mandatory. Every other field must contain a
-verified expectation or `not applicable` with a reason. Do not treat successful
-deserialization or schema validation as sufficient when important response
-values require semantic assertions.
+For every step that issues a request, specify:
+
+- the request: method and path, or the equivalent UI action;
+- an example payload illustrating the request shape, when the step sends a
+  body;
+- explicit pass criteria: what proves this specific step succeeded.
+
+Pass criteria for a request step is that step's own API Response Contract:
+
+- expected HTTP status (mandatory whenever the step issues a request);
+- expected message or key response body field;
+- value checks for business-significant fields (`field = value`);
+- response schema, when the response is structured and a contract is
+  available;
+- required headers, when contractually relevant;
+- error body and error fields, for negative steps;
+- observable side effects or persistence checks, when the step changes state.
+
+Status is always mandatory for a request step. Every other pass-criteria field
+must contain a verified expectation or `not applicable` with a reason. Do not
+treat successful deserialization or schema validation as sufficient when
+important response values require semantic assertions.
+
+Example payloads illustrate shape, not proof of behavior: build them from a
+confirmed schema, an existing fixture, or evidence already cited for the case.
+Never invent field values, IDs, or business data that are not backed by
+evidence; use a clearly illustrative placeholder (e.g. `<uuid>`, `"example"`)
+when the concrete value is not itself part of the assertion.
 
 Resolve unknown status codes, schemas, error contracts, response fields, or
-side effects through `source-of-truth`. An API case with an incomplete or
-unresolved response contract cannot move to `awaiting-approval`.
+side effects through `source-of-truth`. A step with incomplete or unresolved
+pass criteria keeps the case, and the artifact, out of `awaiting-approval`.
 
 Define cleanup only from confirmed evidence. Do not add polling, retries,
 timeouts, completion states, or terminal assertions unless the source contract
@@ -234,6 +262,8 @@ Avoid repetition:
 
 - define shared setup, response rules, and cleanup once;
 - let cases reference shared rules;
+- reuse one example payload across steps or cases when the shape repeats;
+  do not restate an identical payload verbatim in every step;
 - cite a source once unless a different claim needs another citation;
 - keep implementation file lists and helper changes in a short handoff;
 - do not copy source code behavior into narrative paragraphs.
@@ -325,7 +355,10 @@ The QA Orchestrator decides whether implementation may begin.
 - Do not broaden scope merely to maximize case count or coverage metrics.
 - Do not duplicate cases that exercise the same behavior and risk.
 - Do not prescribe a framework pattern that conflicts with project context.
-- Do not approve an API test design that lacks an explicit response contract.
+- Do not approve a request step that lacks explicit pass criteria; status is
+  always mandatory.
+- Do not invent example payload contents; derive them from confirmed schema,
+  fixtures, or evidence, and mark placeholders as illustrative.
 - Do not move to approval with an unresolved source conflict.
 - Do not invent cleanup completion behavior.
 - Do not omit an independent coverage combination without evidence.

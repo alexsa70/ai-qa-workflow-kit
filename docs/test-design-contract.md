@@ -73,22 +73,34 @@ Before implementation:
 
 Approval applies only to the recorded case IDs and conditions.
 
-## API Response Contract
+## Steps And API Response Contract
 
-Every API test case must define:
+A case is a numbered sequence of steps. A single-action case is still a
+one-step list; add steps only when more than one request or observable action
+is needed to prove the behavior (for example: create, then fetch, to confirm
+persisted state).
+
+Every step that issues a request states an example request (method, path, and
+an illustrative payload when a body is sent) and its own pass criteria — that
+step's API Response Contract:
 
 - expected HTTP status;
-- expected body shape or explicit absence of body;
+- expected message or key response body field, or explicit absence of body;
 - response schema when applicable;
 - contractually relevant headers;
-- semantic assertions for business-significant fields;
+- semantic assertions for business-significant fields (value checks);
 - error contract for negative responses;
 - side effects or persistence verification for state-changing operations.
 
-Expected HTTP status is mandatory. Other fields may be `not applicable` only
-with a recorded reason. Schema validation proves structure and types; it does
-not replace semantic assertions for values important to the behavior under
-test.
+Expected HTTP status is mandatory for every request step. Other fields may be
+`not applicable` only with a recorded reason. Schema validation proves
+structure and types; it does not replace semantic assertions for values
+important to the behavior under test.
+
+Example payloads illustrate request shape; they are not proof of behavior.
+Build them from a confirmed schema, fixture, or evidence already cited for the
+case. Never present an invented value as confirmed; mark illustrative
+placeholders clearly.
 
 Concrete project requirements, assertion helpers, schema locations, and
 exceptions belong in project context.
@@ -152,9 +164,9 @@ Before status becomes `implemented`:
 After approval, any change to the following requires renewed approval:
 
 - in-scope or out-of-scope behavior;
-- case inventory;
+- case inventory or its step sequence;
 - expected results;
-- API response contract;
+- a step's pass criteria (its API response contract);
 - actor-target matrix or permissions;
 - assertions;
 - persistent data or cleanup;
