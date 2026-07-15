@@ -14,9 +14,10 @@ The kit separates:
 
 This version contains the reusable QA Orchestrator and the
 `api-layered-architecture`, `source-of-truth`, `test-design`,
-`test-implementation`, `code-review`, and `bug-fixing` skills. The approved
-Test Design Contract remains the durable artifact across architecture mapping,
-design, implementation, verification, review, and repair.
+`test-implementation`, `code-review`, `bug-fixing`, `coverage-matrix`,
+`client-schema-sync`, and `testmo-csv` skills. The approved Test Design
+Contract remains the durable artifact across architecture mapping, design,
+implementation, verification, review, and repair.
 
 ```text
 ai-qa-workflow-kit/
@@ -59,6 +60,20 @@ ai-qa-workflow-kit/
 │   │       ├── openai.yaml
 │   │       └── claude.yaml
 │   ├── bug-fixing/
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       ├── openai.yaml
+│   │       └── claude.yaml
+│   ├── coverage-matrix/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── openai.yaml
+│   │   │   └── claude.yaml
+│   │   ├── assets/
+│   │   │   └── endpoints-config.md
+│   │   └── scripts/
+│   │       └── build_coverage_matrix.py
+│   ├── client-schema-sync/
 │   │   ├── SKILL.md
 │   │   └── agents/
 │   │       ├── openai.yaml

@@ -180,6 +180,20 @@ or expected results unless the user explicitly switches the task to fixing.
 If review reveals unclear intended behavior, route that claim through
 `source-of-truth` instead of changing expectations.
 
+Use `coverage-matrix` when:
+
+- the user asks which API endpoints have automated tests, or wants to audit
+  test coverage for a service or the whole API;
+- a coverage or monitoring spreadsheet must be produced or refreshed from the
+  repository itself;
+- end-to-end or system tests must be folded into an existing coverage view.
+
+`coverage-matrix` computes coverage statically from the test suite and an
+authoritative endpoint list (an Outline/Confluence API doc, an OpenAPI spec, or
+a hand-listed set). It does not author new tests, report pass/fail results, or
+cover non-HTTP surfaces without adapted client-call detection. Route missing
+coverage through `test-design`.
+
 Use `bug-fixing` when:
 
 - a test, client, schema, fixture, factory, assertion, cleanup step, or

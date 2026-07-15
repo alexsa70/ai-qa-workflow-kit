@@ -21,6 +21,16 @@ Project-specific paths, commands, technologies, and policies must not be added
 to reusable agent definitions. Keep them in a project context file based on
 `templates/project-context.md`.
 
+## Shared Memory
+
+Use the shared AI memory vault at
+`/Users/alexanderle/Library/CloudStorage/GoogleDrive-alexsa70@gmail.com/My Drive/My_WIKI/API_Memory`
+as the long-term memory for work on this kit itself. At session start, Claude
+Code hooks inject the vault index and recent daily log automatically.
+Important decisions, lessons, and follow-up items about the kit's own agents,
+skills, and orchestrator behavior (as opposed to any connected target project)
+should be captured into that vault by the configured hooks.
+
 ## Platform Notes
 
 - Skills live under `skills/<name>/SKILL.md`. The `name` and `description`
