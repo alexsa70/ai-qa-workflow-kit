@@ -20,9 +20,9 @@ missing, the launcher stops and prints the commands to create it from
 automatically.
 
 ```bash
-qa-kit                                 # api-tests, claude (defaults)
-qa-kit ~/workspace/QA/e2e-ui-tests     # e2e suite, claude
-qa-kit ~/workspace/QA/api-tests codex  # api-tests, codex
+qa-kit /path/to/api-tests              # target, claude
+qa-kit /path/to/e2e-ui-tests           # target, claude
+qa-kit /path/to/api-tests codex        # target, codex
 ```
 
 Add an alias once (zsh — adjust path if the kit lives elsewhere):
@@ -32,7 +32,8 @@ echo "alias qa-kit='$HOME/workspace/ai-qa-workflow-kit/bin/qa-kit'" >> ~/.zshrc
 source ~/.zshrc
 ```
 
-Defaults can also be set via env: `QA_KIT_TARGET`, `QA_KIT_TOOL`.
+The target path is required as the first argument or via `QA_KIT_TARGET`.
+The tool can be selected via `QA_KIT_TOOL`.
 
 ## Cowork (desktop)
 
@@ -67,14 +68,13 @@ You cannot pass CLI args, so:
 ```
 
 Replace `<KIT_DIR>` with the kit path and `<TARGET_PATH>` with the target repo
-(e.g. `/Users/alexanderle/workspace/QA/api-tests`).
+(for example, `/path/to/target`).
 
 ## Notes
 
 - `ai-workflow/project-context.md` is **facts** (paths, commands, authority
   order), not target-repo *rules* — keep it; without it the kit has no project
-  structure. For zero target influence, omit it and supply paths/commands by
-  hand.
+  structure. The CLI launcher requires this file before starting the agent.
 - Kit skills are files read via the orchestrator, not installed slash skills, so
   "use only kit skills" means: follow the orchestrator and the SKILL.md files,
   ignore the target repo's installed `/...` skills.
