@@ -31,6 +31,15 @@ if [ ! -d "$TARGET" ]; then
   exit 1
 fi
 
+CONTEXT="$TARGET/ai-workflow/project-context.md"
+if [ ! -f "$CONTEXT" ]; then
+  echo "qa-kit: project context is missing: $CONTEXT" >&2
+  echo "Create it from the kit template:" >&2
+  echo "  mkdir -p \"$TARGET/ai-workflow\"" >&2
+  echo "  cp \"$KIT_DIR/templates/project-context.md\" \"$CONTEXT\"" >&2
+  exit 1
+fi
+
 read -r -d '' PROMPT <<EOF || true
 Режим kit-only. Governance — строго AI QA Workflow Kit:
 - Единая точка входа: ${KIT_DIR}/agents/qa-orchestrator.md.
@@ -47,8 +56,8 @@ read -r -d '' PROMPT <<EOF || true
   CSV инлайн «из памяти» и не подмешивай глобальные колонки (Priority/Type и т.п.).
 - В целом для задач, которыми владеет kit-скилл, приоритет у скилла над любыми
   глобальными рецептами.
-- Помни authority order из project-context: backend-код выше runtime; для
-  негативных/permission-ассертов решай по гарду в коде, не по успешному ответу.
+- Соблюдай authority order, source freshness policy и правила разрешения
+  конфликтов только из project-context.
 Подтверди режим одной строкой и жди задачу.
 EOF
 

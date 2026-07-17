@@ -14,6 +14,11 @@ treat the target repo as a folder you operate on.
 `bin/qa-kit` launches Claude or Codex from the kit directory with the kit-only
 governance prompt injected as the first message.
 
+The target project must contain `ai-workflow/project-context.md`. If it is
+missing, the launcher stops and prints the commands to create it from
+`templates/project-context.md`; it does not create or modify the target project
+automatically.
+
 ```bash
 qa-kit                                 # api-tests, claude (defaults)
 qa-kit ~/workspace/QA/e2e-ui-tests     # e2e suite, claude
@@ -45,8 +50,9 @@ You cannot pass CLI args, so:
 - Единая точка входа: <KIT_DIR>/agents/qa-orchestrator.md.
 - Target project: <TARGET_PATH>.
 - Факты проекта бери ТОЛЬКО из <TARGET_PATH>/ai-workflow/project-context.md.
-- Используй ТОЛЬКО скиллы kit (source-of-truth, test-design, test-implementation,
-  bug-fixing, code-review, api-layered-architecture, testmo-csv).
+- Используй ТОЛЬКО скиллы kit (api-layered-architecture, source-of-truth,
+  test-design, test-implementation, code-review, bug-fixing, coverage-matrix,
+  client-schema-sync, testmo-csv).
 - Игнорируй правила и инструменты самого проекта: его CLAUDE.md, AGENTS.md,
   .claude/skills, .claude/agents и корневой QA/CLAUDE.md.
 - Для Testmo CSV игнорируй глобальный ~/.claude/CLAUDE.md и любые глобальные
@@ -55,8 +61,8 @@ You cannot pass CLI args, so:
   CSV инлайн «из памяти» и не подмешивай глобальные колонки (Priority/Type и т.п.).
 - В целом для задач, которыми владеет kit-скилл, приоритет у скилла над любыми
   глобальными рецептами.
-- Помни authority order из project-context: backend-код выше runtime; для
-  негативных/permission-ассертов решай по гарду в коде, не по успешному ответу.
+- Соблюдай authority order, source freshness policy и правила разрешения
+  конфликтов только из project-context.
 Подтверди режим одной строкой и жди задачу.
 ```
 
