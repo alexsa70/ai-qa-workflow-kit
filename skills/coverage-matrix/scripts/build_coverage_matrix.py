@@ -27,20 +27,94 @@ Assumptions (portable across httpx-style API-client suites):
   * a 4-digit case id in the title / parametrize id is treated as the Testmo id.
 Tune the two ``first_path`` predicates below if a suite wraps requests differently.
 """
+import argparse
 import sys, ast, re, os, json, glob, subprocess
 from collections import defaultdict, Counter
 
-import openpyxl
-from openpyxl.styles import Font
+
+def build_parser():
+    parser = argparse.ArgumentParser(
+        description="Build an XLSX endpoint test-coverage matrix from pytest tests.",
+        epilog=(
+            "test_dirs, extra_test_files, and system_test_dirs are comma-separated; "
+            "paths are relative to COVERAGE_REPO unless absolute."
+        ),
+    )
+    parser.add_argument("out_xlsx", help="output workbook path")
+    parser.add_argument("test_dirs", help="comma-separated test directories")
+    parser.add_argument("endpoints_json", help="JSON list of [path, section, method]")
+    parser.add_argument(
+        "extra_test_files_csv",
+        nargs="?",
+        help="optional comma-separated extra test files",
+    )
+    parser.add_argument(
+        "system_test_dirs_csv",
+        nargs="?",
+        help="optional comma-separated E2E/system test directories",
+    )
+    return parser
+
+
+PARSER = build_parser()
+ARGS = PARSER.parse_args()
 
 REPO = os.environ.get("COVERAGE_REPO") or os.getcwd()
 CLIENTS_GLOB = os.environ.get("COVERAGE_CLIENTS_GLOB", "src/clients/*.py")
 
-OUT, TEST_DIR, EP_JSON = sys.argv[1], sys.argv[2], sys.argv[3]
-TDIRS = [d for d in TEST_DIR.split(",") if d]
-EXTRA = sys.argv[4].split(",") if len(sys.argv) > 4 and sys.argv[4] else []
-endpoints = [tuple(x) for x in json.load(open(EP_JSON))]   # (path, section, method)
+def csv_paths(value):
+    return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+OUT = ARGS.out_xlsx
+TDIRS = csv_paths(ARGS.test_dirs)
+EXTRA = csv_paths(ARGS.extra_test_files_csv)
+SYS = csv_paths(ARGS.system_test_dirs_csv)
+EP_JSON = ARGS.endpoints_json
+
+if not TDIRS:
+    PARSER.error("test_dirs must contain at least one directory")
+
+
+def repo_path(path):
+    return path if os.path.isabs(path) else os.path.join(REPO, path)
+
+
+for path in TDIRS + SYS:
+    if not os.path.isdir(repo_path(path)):
+        PARSER.error(f"test directory not found: {path}")
+for path in EXTRA:
+    if not os.path.isfile(repo_path(path)):
+        PARSER.error(f"extra test file not found: {path}")
+
+if not os.path.isfile(EP_JSON):
+    PARSER.error(f"endpoints JSON not found: {EP_JSON}")
+try:
+    with open(EP_JSON, encoding="utf-8") as endpoint_file:
+        raw_endpoints = json.load(endpoint_file)
+except (OSError, json.JSONDecodeError) as exc:
+    PARSER.error(f"cannot read endpoints JSON '{EP_JSON}': {exc}")
+
+if not isinstance(raw_endpoints, list) or any(
+    not isinstance(item, list) or len(item) != 3 or not all(isinstance(v, str) and v for v in item)
+    for item in raw_endpoints
+):
+    PARSER.error("endpoints JSON must be a list of [path, section_title, method] strings")
+if not raw_endpoints:
+    PARSER.error("endpoints JSON must contain at least one endpoint")
+
+output_parent = os.path.dirname(os.path.abspath(OUT))
+if not os.path.isdir(output_parent):
+    PARSER.error(f"output directory not found: {output_parent}")
+
+endpoints = [tuple(x) for x in raw_endpoints]   # (path, section, method)
 EP_PATHS = {p for p, _, _ in endpoints}
+
+try:
+    import openpyxl
+    from openpyxl.styles import Font
+except ImportError as exc:
+    PARSER.error(f"openpyxl is required to write the workbook: {exc}")
 
 
 # ---- 1. client method -> endpoint path (parse all client modules) ----
@@ -281,7 +355,6 @@ for row, ep in pending:
         unassigned.append(row)
 
 # ---- 3b. system/E2E tests: attribute to EVERY in-scope endpoint they call ----
-SYS = sys.argv[5].split(",") if len(sys.argv) > 5 and sys.argv[5] else []
 if SYS:
     sysabs = [d if os.path.isabs(d) else os.path.join(REPO, d) for d in SYS]
     sysfiles = [p for d in sysabs for p in glob.glob(os.path.join(d, "**", "test_*.py"), recursive=True)]
