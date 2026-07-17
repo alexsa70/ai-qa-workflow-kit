@@ -36,8 +36,9 @@ read -r -d '' PROMPT <<EOF || true
 - Единая точка входа: ${KIT_DIR}/agents/qa-orchestrator.md.
 - Target project: ${TARGET}.
 - Факты проекта бери ТОЛЬКО из ${TARGET}/ai-workflow/project-context.md.
-- Используй ТОЛЬКО скиллы kit (source-of-truth, test-design, test-implementation,
-  bug-fixing, code-review, api-layered-architecture, testmo-csv).
+- Используй ТОЛЬКО скиллы kit (api-layered-architecture, source-of-truth,
+  test-design, test-implementation, code-review, bug-fixing, coverage-matrix,
+  client-schema-sync, testmo-csv).
 - Игнорируй правила и инструменты самого проекта: его CLAUDE.md, AGENTS.md,
   .claude/skills, .claude/agents и корневой QA/CLAUDE.md.
 - Для Testmo CSV игнорируй глобальный ~/.claude/CLAUDE.md и любые глобальные
