@@ -26,7 +26,7 @@ Name,Automated,Description,Expected,Folder,Pre-conditions,State,Steps,Tags
 | `Folder` | `test_<snake>.py` → Title Case of `<snake>`. Optionally service-prefixed (`Service Name/Folder`) when project context says so. |
 | `Pre-conditions` | Required state before the action (role, owned resource, seeded data). |
 | `State` | `Active`. |
-| `Steps` | Numbered list: `1. …` newline `2. …`. |
+| `Steps` | Numbered list: `1. …` newline `2. …`. **Each step ends with the endpoint(s) it exercises**, appended as ` -> METHOD /path` (chain multiple with ` -> `), e.g. `2. Create a folder with image_id. -> POST /api/folders/create`. A non-request step (a pure wait/assert with no call) needs no endpoint. |
 | `Tags` | Comma-separated in one cell: `api-automation` + `positive` or `negative`. |
 
 ## Folder Derivation
@@ -55,8 +55,8 @@ Header + one row, showing quoting and multi-line cells:
 
 ```text
 Name,Automated,Description,Expected,Folder,Pre-conditions,State,Steps,Tags
-"Edit possible words — regular user forbidden (401/403)",Yes,"A regular (non-admin) user calling edit_possible_words on a real rule must be rejected.","HTTP 401 or 403 — auth enforced on a real rule_id.","Edit Possible Words","Admin and a regular user are authenticated. An agent with a word_count rule exists (admin-owned).",Active,"1. Create agent with a word_count rule as admin to get a real rule_id.
-2. GET the agent to extract rule_id and org_id.
-3. Call edit_possible_words with regular-user credentials against the real rule_id.
+"Edit possible words — regular user forbidden (401/403)",Yes,"A regular (non-admin) user calling edit_possible_words on a real rule must be rejected.","HTTP 401 or 403 — auth enforced on a real rule_id.","Edit Possible Words","Admin and a regular user are authenticated. An agent with a word_count rule exists (admin-owned).",Active,"1. Create agent with a word_count rule as admin to get a real rule_id. -> POST /api/agents/create
+2. GET the agent to extract rule_id and org_id. -> POST /api/agents/get
+3. Call edit_possible_words with regular-user credentials against the real rule_id. -> POST /api/agents/edit_possible_words
 4. Assert the response is 401 or 403.","api-automation,negative"
 ```

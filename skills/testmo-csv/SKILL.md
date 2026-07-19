@@ -39,7 +39,7 @@ example. One test = one row.
 | `Expected` | the assertions | The expected outcome(s): status codes, response fields, side effects asserted in the test. |
 | `Pre-conditions` | setup / fixtures | The state required before the action (auth role, owned resource, seeded data) from fixtures, factory setup, and the first setup steps. |
 | `State` | — | `Active`. |
-| `Steps` | the test actions | Numbered list (`1. … 2. …`) from the test's step titles (`with allure.step("…")`) or the logical actions in body order. |
+| `Steps` | the test actions | Numbered list (`1. … 2. …`) from the test's step titles (`with allure.step("…")`) or the logical actions in body order. **Append the endpoint(s) each step exercises** as ` -> METHOD /path` (chain with ` -> `); a pure wait/assert step needs none. |
 | `Automated` | — | `Yes`. |
 | `Tags` | pytest markers | `api-automation` plus polarity: `positive` or `negative`, decided from the `positive`/`negative` marker (or, if absent, from whether the test asserts a 2xx success or a 4xx/5xx rejection). Comma-separated in one cell, e.g. `api-automation,negative`. |
 
