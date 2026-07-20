@@ -8,6 +8,11 @@
 #
 # Config (optional env vars):
 #   PROTECTED_BRANCHES  space-separated names to hard-block. Default: "main master".
+#
+# Explicit escape hatch: prefix the commit with ALLOW_MAIN_COMMIT=1 to permit an
+# intentional direct-to-main commit — the hook then warns and allows instead of
+# blocking, e.g. `ALLOW_MAIN_COMMIT=1 git commit -m "..."`. Add this only when a
+# direct commit to a protected branch is deliberately authorized.
 
 INPUT=$(cat)
 
@@ -19,8 +24,13 @@ BRANCH="$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null)" || exit 0
 PROTECTED_BRANCHES="${PROTECTED_BRANCHES:-main master}"
 for P in $PROTECTED_BRANCHES; do
   if [ "$BRANCH" = "$P" ]; then
+    if echo "$INPUT" | grep -qE 'ALLOW_MAIN_COMMIT=(1|true|yes)'; then
+      echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"WARNING: direct commit to protected branch '$BRANCH' allowed via explicit ALLOW_MAIN_COMMIT override. Use only for an intentional, small, non-test change the user authorized.\"}}"
+      exit 0
+    fi
     printf "BLOCKED: attempted commit on '%s'. Rule: never commit directly to a protected branch.\n" "$BRANCH" >&2
     printf "Create a feature branch first: git checkout -b <topic>/<scope>\n" >&2
+    printf "If a direct-to-main commit is intentional and explicitly authorized, re-run with: ALLOW_MAIN_COMMIT=1 git commit ...\n" >&2
     exit 2
   fi
 done
