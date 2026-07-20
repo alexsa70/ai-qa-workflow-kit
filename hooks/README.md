@@ -7,7 +7,7 @@ blocks the action.
 
 | Hook | Fires on | Effect |
 |---|---|---|
-| `pre-commit-branch-guard.sh` | `git commit` | **Blocks** (exit 2) a commit on a protected branch (`main`/`master`); warns which branch a commit is landing on otherwise. |
+| `pre-commit-branch-guard.sh` | `git commit` | **Blocks** (exit 2) a commit on a protected branch (`main`/`master`); warns which branch a commit is landing on otherwise. Explicit escape hatch: prefix with `ALLOW_MAIN_COMMIT=1` to warn-and-allow an intentional direct-to-main commit. |
 | `skill-size-check.sh` | `git commit` | **Blocks** (exit 2) when a staged parent `SKILL.md` exceeds the line cap (default 200); hint to split into sub-skills. |
 | `pre-commit-check.sh` | `git commit`, `git add` | Advisory only. Warns on bulk `git add -A/./--all` with many untracked files, and on very large staged diffs that likely contain generated artifacts. |
 
@@ -66,3 +66,18 @@ To override a default in one project, set the env var on the command, e.g.:
 ```json
 { "type": "command", "command": "SKILL_LINE_CAP=300 bash /absolute/path/to/ai-qa-workflow-kit/hooks/skill-size-check.sh" }
 ```
+
+## Escape hatch: intentional direct-to-main commit
+
+`pre-commit-branch-guard.sh` hard-blocks a commit on a protected branch by
+default. For an intentional small change that belongs directly on `main` (a typo
+fix, a doc tweak — not test code), prefix the commit with the override flag:
+
+```bash
+ALLOW_MAIN_COMMIT=1 git commit -m "docs: fix typo"
+```
+
+The hook then emits a warning and allows the commit instead of blocking it. Add
+this flag only when a direct-to-main commit is deliberately authorized — it is
+per-command and never implicit, so an accidental commit to a protected branch is
+still blocked.
