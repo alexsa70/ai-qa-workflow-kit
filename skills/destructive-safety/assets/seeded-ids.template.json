@@ -1,0 +1,17 @@
+{
+  "$comment": "Destructive-safety denylist for a connected project. Copy into the target project (path recorded in ai-workflow/project-context.md), fill with real protected identifiers, and keep it read-only to the agent. Extend it only through a reviewed human change that also updates any dependent tests/scanner assertions. See skills/destructive-safety/SKILL.md.",
+  "schema_version": 1,
+  "protected_ids": {
+    "$comment": "Identifiers a run must NEVER target with a destructive call. Group by kind for readability; all values are matched literally.",
+    "users": [],
+    "organizations": [],
+    "folders": [],
+    "fixtures": []
+  },
+  "protected_logins": {
+    "$comment": "Literal credentials/usernames that must never be deleted, reset, or have passwords changed.",
+    "logins": []
+  },
+  "destructive_call_pattern": "^(delete_|drop_|purge_|wipe_|reset_|remove_)",
+  "fixture_allowlist_pattern": "^(temporary_|qa_ephemeral_)"
+}

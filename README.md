@@ -12,12 +12,13 @@ The kit separates:
 
 ## First Version
 
-This version contains the reusable QA Orchestrator and the
-`api-layered-architecture`, `source-of-truth`, `test-design`,
-`test-implementation`, `code-review`, `bug-fixing`, `coverage-matrix`,
-`client-schema-sync`, and `testmo-csv` skills. The approved Test Design
-Contract remains the durable artifact across architecture mapping, design,
-implementation, verification, review, and repair.
+This version contains the reusable QA Orchestrator, the `qa-review-gate`
+specialist agent, and the `api-layered-architecture`, `source-of-truth`,
+`test-design`, `test-implementation`, `code-review`, `bug-fixing`,
+`coverage-matrix`, `client-schema-sync`, `testmo-csv`, and `destructive-safety`
+skills. It also ships opt-in Claude Code hooks under `hooks/`. The approved
+Test Design Contract remains the durable artifact across architecture mapping,
+design, implementation, verification, review, and repair.
 
 ```text
 ai-qa-workflow-kit/
@@ -25,7 +26,13 @@ ai-qa-workflow-kit/
 ├── CLAUDE.md                     # Claude entry point (twin of AGENTS.md)
 ├── README.md
 ├── agents/
-│   └── qa-orchestrator.md
+│   ├── qa-orchestrator.md
+│   └── qa-review-gate.md         # adversarial PASS|EDIT|FAIL gate
+├── hooks/                        # opt-in Claude Code PreToolUse hooks
+│   ├── README.md                 # wiring + configuration
+│   ├── pre-commit-branch-guard.sh
+│   ├── skill-size-check.sh
+│   └── pre-commit-check.sh
 ├── skills/
 │   ├── api-layered-architecture/
 │   │   ├── SKILL.md
@@ -78,15 +85,22 @@ ai-qa-workflow-kit/
 │   │   └── agents/
 │   │       ├── openai.yaml
 │   │       └── claude.yaml
-│   └── testmo-csv/
+│   ├── testmo-csv/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── openai.yaml
+│   │   │   └── claude.yaml
+│   │   ├── assets/
+│   │   │   └── testmo-csv-format.md
+│   │   └── scripts/
+│   │       └── tests_to_testmo_csv.py
+│   └── destructive-safety/
 │       ├── SKILL.md
 │       ├── agents/
 │       │   ├── openai.yaml
 │       │   └── claude.yaml
-│       ├── assets/
-│       │   └── testmo-csv-format.md
-│       └── scripts/
-│           └── tests_to_testmo_csv.py
+│       └── assets/
+│           └── seeded-ids.template.json
 ├── docs/
 │   ├── architecture.md
 │   ├── component-inventory.md
@@ -108,6 +122,21 @@ or free text (see `skills/test-design/assets/intake-sources.md`).
 
 To run a client governed by the kit only — ignoring a target repo's own rules
 and skills — use `bin/qa-kit` or follow `docs/kit-only-mode.md`.
+
+## Hooks
+
+`hooks/` ships opt-in, project-agnostic Claude Code `PreToolUse` hooks (plain
+`git` + POSIX shell, no external tooling):
+
+- `pre-commit-branch-guard.sh` — hard-blocks a commit on a protected branch
+  (`main`/`master`), warns which branch a commit lands on otherwise;
+- `skill-size-check.sh` — blocks a staged `SKILL.md` over a configurable line
+  cap (default 200), so an oversized skill is split rather than padded;
+- `pre-commit-check.sh` — advisory warnings on bulk staging and large diffs
+  that likely contain generated artifacts.
+
+They are not active until wired into a `.claude/settings.json`. See
+`hooks/README.md` for the wiring snippet and per-hook configuration.
 
 ## Design Documents
 

@@ -24,3 +24,10 @@ to reusable agent definitions. Keep them in a project context file based on
 Each skill carries platform launch metadata under `skills/<name>/agents/`:
 `openai.yaml` for Codex / OpenAI and `claude.yaml` for Claude. Both describe the
 same skill and must stay consistent.
+
+Reusable specialist agents live under `agents/` alongside the orchestrator
+(currently `qa-review-gate`, an adversarial PASS|EDIT|FAIL review gate) and, like
+the orchestrator, carry no project-specific paths, commands, or services.
+
+`hooks/` ships opt-in, project-agnostic Claude Code `PreToolUse` hooks. They are
+inert until wired into a `.claude/settings.json`; see `hooks/README.md`.
