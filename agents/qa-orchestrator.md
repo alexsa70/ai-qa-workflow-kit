@@ -236,6 +236,39 @@ Use `testmo-csv` when:
 `testmo-csv` is read-only over tests and produces only a CSV. It does not write
 or modify tests, design new coverage, or push to Testmo via API.
 
+Use `destructive-safety` when:
+
+- a test or fixture calls a destructive operation (delete, drop, purge, wipe,
+  reset, remove) against a live system;
+- an autonomous or headless run must be authorized to create and clean up
+  resources without a human watching each step;
+- the resources a run may touch and the cleanup it must perform must be made
+  explicit before execution.
+
+`destructive-safety` decides whether an action is safe to execute in the
+configured non-production environment now — not whether it is permitted by
+contract (route that to `source-of-truth`) or which coverage to design (route
+that to `test-design`). It reads the project denylist and never edits it, never
+relaxes a pattern, and never authorizes production execution. If the denylist is
+missing, stop with a `missing capability` blocker instead of proceeding against
+a live system.
+
+## Agent Routing
+
+Beyond the skills above, the kit ships one specialist agent.
+
+Use `qa-review-gate` when a consequential, hard-to-reverse transition needs an
+independent, adversarial go/no-go before it proceeds — a Test Design Contract
+leaving `awaiting-approval`, implemented tests being treated as accepted, or any
+external or mutating write (filing a ticket, pushing a branch, opening a PR,
+transitioning a case, running a destructive suite). Name the review lens
+(`technique-conformance`, `coverage-completeness`, `spec-fidelity`, or
+`pre-external-write`). The gate returns exactly one verdict — `PASS`, `EDIT`, or
+`FAIL` — and does not edit the artifact, fix findings, or approve its own prior
+work. For a small, low-risk change, proceed without a gate rather than adding
+ceremony. Route a factual claim the gate cannot establish through
+`source-of-truth`.
+
 ## Artifact Rule
 
 Create or update an artifact only when at least one condition applies:

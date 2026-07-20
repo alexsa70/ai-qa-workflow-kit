@@ -1,0 +1,4 @@
+interface:
+  display_name: "Destructive Safety"
+  short_description: "Gate destructive test actions against a denylist"
+  default_prompt: "Use $destructive-safety to check this run's destructive calls against the project denylist and enforce the blast-radius invariants before execution."

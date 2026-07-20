@@ -39,5 +39,10 @@ should be captured into that vault by the configured hooks.
 - Each skill carries platform launch metadata under `skills/<name>/agents/`:
   `claude.yaml` for Claude, `openai.yaml` for Codex / OpenAI. The two files
   describe the same skill and must stay consistent.
+- Reusable specialist agents live under `agents/` alongside the orchestrator
+  (currently `qa-review-gate`, an adversarial PASS|EDIT|FAIL review gate). Like
+  the orchestrator, they carry no project-specific paths, commands, or services.
+- `hooks/` ships opt-in, project-agnostic Claude Code `PreToolUse` hooks. They
+  are inert until wired into a `.claude/settings.json`; see `hooks/README.md`.
 - When a request targets another repository, that repository's own `CLAUDE.md`
   and `AGENTS.md` should point here and to its `ai-workflow/project-context.md`.
