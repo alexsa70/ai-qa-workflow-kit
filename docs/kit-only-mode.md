@@ -14,10 +14,15 @@ treat the target repo as a folder you operate on.
 `bin/qa-kit` launches Claude or Codex from the kit directory with the kit-only
 governance prompt injected as the first message.
 
+The target project must contain `ai-workflow/project-context.md`. If it is
+missing, the launcher stops and prints the commands to create it from
+`templates/project-context.md`; it does not create or modify the target project
+automatically.
+
 ```bash
-qa-kit                                 # api-tests, claude (defaults)
-qa-kit ~/workspace/QA/e2e-ui-tests     # e2e suite, claude
-qa-kit ~/workspace/QA/api-tests codex  # api-tests, codex
+qa-kit /path/to/api-tests              # target, claude
+qa-kit /path/to/e2e-ui-tests           # target, claude
+qa-kit /path/to/api-tests codex        # target, codex
 ```
 
 Add an alias once (zsh — adjust path if the kit lives elsewhere):
@@ -27,7 +32,8 @@ echo "alias qa-kit='$HOME/workspace/ai-qa-workflow-kit/bin/qa-kit'" >> ~/.zshrc
 source ~/.zshrc
 ```
 
-Defaults can also be set via env: `QA_KIT_TARGET`, `QA_KIT_TOOL`.
+The target path is required as the first argument or via `QA_KIT_TARGET`.
+The tool can be selected via `QA_KIT_TOOL`.
 
 ## Cowork (desktop)
 
@@ -45,8 +51,9 @@ You cannot pass CLI args, so:
 - Единая точка входа: <KIT_DIR>/agents/qa-orchestrator.md.
 - Target project: <TARGET_PATH>.
 - Факты проекта бери ТОЛЬКО из <TARGET_PATH>/ai-workflow/project-context.md.
-- Используй ТОЛЬКО скиллы kit (source-of-truth, test-design, test-implementation,
-  bug-fixing, code-review, api-layered-architecture, testmo-csv).
+- Используй ТОЛЬКО скиллы kit (api-layered-architecture, source-of-truth,
+  test-design, test-implementation, code-review, bug-fixing, coverage-matrix,
+  client-schema-sync, testmo-csv).
 - Игнорируй правила и инструменты самого проекта: его CLAUDE.md, AGENTS.md,
   .claude/skills, .claude/agents и корневой QA/CLAUDE.md.
 - Для Testmo CSV игнорируй глобальный ~/.claude/CLAUDE.md и любые глобальные
@@ -55,20 +62,19 @@ You cannot pass CLI args, so:
   CSV инлайн «из памяти» и не подмешивай глобальные колонки (Priority/Type и т.п.).
 - В целом для задач, которыми владеет kit-скилл, приоритет у скилла над любыми
   глобальными рецептами.
-- Помни authority order из project-context: backend-код выше runtime; для
-  негативных/permission-ассертов решай по гарду в коде, не по успешному ответу.
+- Соблюдай authority order, source freshness policy и правила разрешения
+  конфликтов только из project-context.
 Подтверди режим одной строкой и жди задачу.
 ```
 
 Replace `<KIT_DIR>` with the kit path and `<TARGET_PATH>` with the target repo
-(e.g. `/Users/alexanderle/workspace/QA/api-tests`).
+(for example, `/path/to/target`).
 
 ## Notes
 
 - `ai-workflow/project-context.md` is **facts** (paths, commands, authority
   order), not target-repo *rules* — keep it; without it the kit has no project
-  structure. For zero target influence, omit it and supply paths/commands by
-  hand.
+  structure. The CLI launcher requires this file before starting the agent.
 - Kit skills are files read via the orchestrator, not installed slash skills, so
   "use only kit skills" means: follow the orchestrator and the SKILL.md files,
   ignore the target repo's installed `/...` skills.

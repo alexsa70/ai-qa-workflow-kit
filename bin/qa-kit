@@ -10,24 +10,40 @@
 #   qa-kit [target-path] [claude|codex]
 #
 # Defaults:
-#   target-path : $QA_KIT_TARGET, else /Users/alexanderle/workspace/QA/api-tests
-#   tool        : $QA_KIT_TOOL,   else claude
+#   target-path : first argument or $QA_KIT_TARGET (required)
+#   tool        : $QA_KIT_TOOL, else claude
 #
 # Examples:
-#   qa-kit                                   # api-tests, claude
-#   qa-kit ~/workspace/QA/e2e-ui-tests       # e2e suite, claude
-#   qa-kit ~/workspace/QA/api-tests codex    # api-tests, codex
+#   qa-kit /path/to/api-tests                 # target, claude
+#   qa-kit /path/to/e2e-ui-tests              # target, claude
+#   QA_KIT_TARGET=/path/to/api-tests qa-kit codex
 
 set -euo pipefail
 
 # Kit dir = parent of this script's dir (portable; no hardcoded user path).
 KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-TARGET="${1:-${QA_KIT_TARGET:-/Users/alexanderle/workspace/QA/api-tests}}"
+TARGET="${1:-${QA_KIT_TARGET:-}}"
 TOOL="${2:-${QA_KIT_TOOL:-claude}}"
+
+if [ -z "$TARGET" ]; then
+  echo "qa-kit: target path is required" >&2
+  echo "Usage: qa-kit <target-path> [claude|codex]" >&2
+  echo "Or set QA_KIT_TARGET=/path/to/target" >&2
+  exit 1
+fi
 
 if [ ! -d "$TARGET" ]; then
   echo "qa-kit: target path not found: $TARGET" >&2
+  exit 1
+fi
+
+CONTEXT="$TARGET/ai-workflow/project-context.md"
+if [ ! -f "$CONTEXT" ]; then
+  echo "qa-kit: project context is missing: $CONTEXT" >&2
+  echo "Create it from the kit template:" >&2
+  echo "  mkdir -p \"$TARGET/ai-workflow\"" >&2
+  echo "  cp \"$KIT_DIR/templates/project-context.md\" \"$CONTEXT\"" >&2
   exit 1
 fi
 
@@ -36,8 +52,9 @@ read -r -d '' PROMPT <<EOF || true
 - Единая точка входа: ${KIT_DIR}/agents/qa-orchestrator.md.
 - Target project: ${TARGET}.
 - Факты проекта бери ТОЛЬКО из ${TARGET}/ai-workflow/project-context.md.
-- Используй ТОЛЬКО скиллы kit (source-of-truth, test-design, test-implementation,
-  bug-fixing, code-review, api-layered-architecture, testmo-csv).
+- Используй ТОЛЬКО скиллы kit (api-layered-architecture, source-of-truth,
+  test-design, test-implementation, code-review, bug-fixing, coverage-matrix,
+  client-schema-sync, testmo-csv).
 - Игнорируй правила и инструменты самого проекта: его CLAUDE.md, AGENTS.md,
   .claude/skills, .claude/agents и корневой QA/CLAUDE.md.
 - Для Testmo CSV игнорируй глобальный ~/.claude/CLAUDE.md и любые глобальные
@@ -46,8 +63,8 @@ read -r -d '' PROMPT <<EOF || true
   CSV инлайн «из памяти» и не подмешивай глобальные колонки (Priority/Type и т.п.).
 - В целом для задач, которыми владеет kit-скилл, приоритет у скилла над любыми
   глобальными рецептами.
-- Помни authority order из project-context: backend-код выше runtime; для
-  негативных/permission-ассертов решай по гарду в коде, не по успешному ответу.
+- Соблюдай authority order, source freshness policy и правила разрешения
+  конфликтов только из project-context.
 Подтверди режим одной строкой и жди задачу.
 EOF
 
