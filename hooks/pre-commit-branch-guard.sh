@@ -18,7 +18,24 @@ INPUT=$(cat)
 
 echo "$INPUT" | grep -qE '(^|[[:space:];&|("])git[[:space:]]+commit([[:space:]"]|$)' || exit 0
 
-REPO="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+# Resolve the repo the commit actually TARGETS, not the hook's own cwd. In a
+# multi-repo setup the session cwd (where this hook runs) can differ from the
+# directory the command commits in (e.g. `cd /path/to/other-repo && git commit`).
+# Derive the target dir from the command itself, in priority order:
+#   1. an explicit `git -C <dir>`;
+#   2. the last `cd <dir>` before the commit;
+#   3. the hook payload's own "cwd";
+#   4. $PWD.
+TARGET="$(printf '%s' "$INPUT" | grep -oE 'git[[:space:]]+-C[[:space:]]+[^[:space:]"]+' | head -n1 | sed -E 's/^git[[:space:]]+-C[[:space:]]+//')"
+if [ -z "$TARGET" ]; then
+  TARGET="$(printf '%s' "$INPUT" | grep -oE '(^|[;&|"[:space:]])cd[[:space:]]+[^[:space:]"&;|]+' | tail -n1 | sed -E 's/.*cd[[:space:]]+//')"
+fi
+if [ -z "$TARGET" ]; then
+  TARGET="$(printf '%s' "$INPUT" | sed -nE 's/.*"cwd"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
+fi
+[ -z "$TARGET" ] && TARGET="$PWD"
+
+REPO="$(git -C "$TARGET" rev-parse --show-toplevel 2>/dev/null)" || exit 0
 BRANCH="$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null)" || exit 0
 
 PROTECTED_BRANCHES="${PROTECTED_BRANCHES:-main master}"
