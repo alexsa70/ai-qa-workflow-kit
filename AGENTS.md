@@ -28,6 +28,10 @@ same skill and must stay consistent.
 Reusable specialist agents live under `agents/` alongside the orchestrator
 (currently `qa-review-gate`, an adversarial PASS|EDIT|FAIL review gate) and, like
 the orchestrator, carry no project-specific paths, commands, or services.
+On Claude, `qa-review-gate` is also launched as a real subagent through the
+read-only wrapper `.claude/agents/qa-review-gate.md`. Codex has no equivalent
+launch in this kit: apply `agents/qa-review-gate.md` as a role, and do not claim
+it ran as an independent agent.
 
 `hooks/` ships opt-in, project-agnostic Claude Code `PreToolUse` hooks. They are
 inert until wired into a `.claude/settings.json`; see `hooks/README.md`.

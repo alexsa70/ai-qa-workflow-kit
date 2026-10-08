@@ -83,6 +83,21 @@ class DocumentationConsistencyTests(unittest.TestCase):
         self.assertIn("target path is required", launcher)
 
 
+class ClaudeSubagentTests(unittest.TestCase):
+    def test_review_gate_wrapper_is_read_only_and_points_at_role(self):
+        wrapper = ROOT / ".claude" / "agents" / "qa-review-gate.md"
+        meta = frontmatter(wrapper)
+        self.assertEqual(meta.get("name"), "qa-review-gate")
+        self.assertTrue(meta.get("description"))
+
+        tools = {tool.strip() for tool in meta.get("tools", "").split(",")}
+        self.assertTrue(tools, "wrapper must declare an explicit tool list")
+        self.assertFalse(tools & {"Edit", "Write", "NotebookEdit", "Bash"}, tools)
+
+        self.assertTrue((ROOT / "agents" / "qa-review-gate.md").is_file())
+        self.assertIn("agents/qa-review-gate.md", wrapper.read_text(encoding="utf-8"))
+
+
 class ScriptSmokeTests(unittest.TestCase):
     def run_script(self, relative_path, *args):
         return subprocess.run(
