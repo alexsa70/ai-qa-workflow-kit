@@ -24,6 +24,9 @@ design, implementation, verification, review, and repair.
 ai-qa-workflow-kit/
 ├── AGENTS.md                     # Codex / OpenAI entry point
 ├── CLAUDE.md                     # Claude entry point (twin of AGENTS.md)
+├── .claude/
+│   └── agents/
+│       └── qa-review-gate.md     # Claude subagent wrapper for the gate
 ├── README.md
 ├── agents/
 │   ├── qa-orchestrator.md
@@ -119,6 +122,11 @@ platform launch metadata in `skills/<name>/agents/` (`openai.yaml` and
 `claude.yaml`); the shared behavior lives in each `SKILL.md`. `test-design` can
 take its requirement from an Outline link, a Jira issue, a Testmo case or run,
 or free text (see `skills/test-design/assets/intake-sources.md`).
+
+On Claude, `qa-review-gate` runs as a real subagent in a separate, read-only
+context through `.claude/agents/qa-review-gate.md`, a thin wrapper that loads
+`agents/qa-review-gate.md`. It is picked up when Claude runs with the kit as the
+working directory (as `bin/qa-kit` does). On Codex the gate is applied as a role.
 
 To run a client governed by the kit only — ignoring a target repo's own rules
 and skills — use `bin/qa-kit` or follow `docs/kit-only-mode.md`.
