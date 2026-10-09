@@ -54,9 +54,12 @@ read -r -d '' PROMPT <<EOF || true
 - Факты проекта бери ТОЛЬКО из ${TARGET}/ai-workflow/project-context.md.
 - Используй ТОЛЬКО скиллы kit (api-layered-architecture, source-of-truth,
   test-design, test-implementation, code-review, bug-fixing, coverage-matrix,
-  client-schema-sync, testmo-csv).
-- Игнорируй правила и инструменты самого проекта: его CLAUDE.md, AGENTS.md,
-  .claude/skills, .claude/agents и корневой QA/CLAUDE.md.
+  client-schema-sync, destructive-safety, testmo-csv).
+- Игнорируй правила и инструменты target-проекта: его CLAUDE.md, AGENTS.md,
+  .claude/skills, .claude/agents и корневой QA/CLAUDE.md. Это не касается
+  .claude/agents самого kit: qa-review-gate — часть kit. Когда оркестратор
+  направляет на review gate, в Claude запускай субагент qa-review-gate, в Codex
+  применяй роль agents/qa-review-gate.md.
 - Для Testmo CSV игнорируй глобальный ~/.claude/CLAUDE.md и любые глобальные
   преференции по колонкам/формату — формат и процедуру бери ТОЛЬКО из kit-скилла
   testmo-csv (его SKILL.md + экстрактор scripts/tests_to_testmo_csv.py). Не строй
