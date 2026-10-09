@@ -19,13 +19,6 @@ import re
 import sys
 from pathlib import Path
 
-try:
-    from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font
-    from openpyxl.utils import get_column_letter
-except ImportError:
-    sys.exit("openpyxl is required: pip install openpyxl --break-system-packages")
-
 CASE_COLUMNS = [
     "ID", "Name", "Priority", "Request actor", "Target variants",
     "Preconditions", "Cleanup", "Evidence",
@@ -221,7 +214,15 @@ def _parse_step_body(body: str, step: dict):
     flush()
 
 
-def build_workbook(meta: dict, cases: list[dict], steps: list[dict]) -> Workbook:
+def build_workbook(meta: dict, cases: list[dict], steps: list[dict]) -> "Workbook":
+    # Imported lazily so `--help` and argument errors work without openpyxl.
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        sys.exit("openpyxl is required: pip install openpyxl --break-system-packages")
+
     wb = Workbook()
     header_font = Font(bold=True)
     wrap_top = Alignment(wrap_text=True, vertical="top")
