@@ -82,6 +82,17 @@ class DocumentationConsistencyTests(unittest.TestCase):
         self.assertIn('TARGET="${1:-${QA_KIT_TARGET:-}}"', launcher)
         self.assertIn("target path is required", launcher)
 
+    def test_launcher_and_kit_only_docs_list_every_kit_skill(self):
+        launcher = (ROOT / "bin" / "qa-kit").read_text(encoding="utf-8")
+        docs = (ROOT / "docs" / "kit-only-mode.md").read_text(encoding="utf-8")
+        skills = sorted(path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md"))
+        self.assertTrue(skills)
+        for text in (launcher, docs):
+            flat = " ".join(text.split())
+            for skill in skills:
+                self.assertIn(skill, flat)
+            self.assertIn("qa-review-gate", flat)
+
 
 class ClaudeSubagentTests(unittest.TestCase):
     def test_review_gate_wrapper_is_read_only_and_points_at_role(self):
