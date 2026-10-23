@@ -267,6 +267,8 @@ class SelectReadyPrsTests(unittest.TestCase):
             (tmp / "prs.json").write_text(json.dumps([pr(12), pr(13, files=("b.yaml",))]), encoding="utf-8")
             (tmp / "12.events.json").write_text(json.dumps([labeled("alex", "2026-10-23T10:00:00Z")]), encoding="utf-8")
             (tmp / "13.events.json").write_text(json.dumps([labeled("ci[bot]", "2026-10-23T10:00:00Z", actor_type="Bot")]), encoding="utf-8")
+            for number in (12, 13):
+                (tmp / f"{number}.comments.json").write_text("[]", encoding="utf-8")
             result = subprocess.run(
                 [sys.executable, str(ROOT / "bin/lib/select_ready_prs.py"), "--prs", str(tmp / "prs.json"),
                  "--events-dir", str(tmp), "--label-ready", "afk-ready", "--label-done", "afk-done",
@@ -282,6 +284,118 @@ class SelectReadyPrsTests(unittest.TestCase):
                                 capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("usage:", result.stdout.lower())
+
+
+class SelectReadyPrsFailClosedTests(unittest.TestCase):
+    def setUp(self):
+        self.mod = load_module("bin/lib/select_ready_prs.py", "select_ready_prs")
+
+    def classify(self, item, events, comments=(), night_actor=""):
+        return self.mod.classify(item, list(events), list(comments), [], LABELS, r"\[bot\]$", night_actor)
+
+    def test_label_event_without_created_at_is_skipped(self):
+        event = labeled("alex", "2026-10-23T10:00:00Z")
+        del event["created_at"]
+        self.assertEqual(self.classify(pr(1), [event])[0], "skipped")
+        event["created_at"] = ""
+        self.assertEqual(self.classify(pr(1), [event])[0], "skipped")
+
+    def test_actor_null_or_without_login_is_skipped(self):
+        null_actor = labeled("alex", "2026-10-23T10:00:00Z")
+        null_actor["actor"] = None
+        no_login = labeled("alex", "2026-10-23T10:00:00Z")
+        no_login["actor"] = {"type": "User"}
+        self.assertEqual(self.classify(pr(1), [null_actor])[0], "skipped")
+        self.assertEqual(self.classify(pr(1), [no_login])[0], "skipped")
+
+    def test_report_without_created_at_is_skipped(self):
+        event = [labeled("alex", "2026-10-23T10:00:00Z")]
+        for comment in ({"body": "night-shift run 1"},
+                        {"body": "night-shift run 1", "created_at": ""},
+                        {"body": "night-shift run 1", "created_at": None}):
+            self.assertEqual(self.classify(pr(1), event, [comment])[0], "skipped")
+
+    def test_report_at_exactly_label_time_is_skipped(self):
+        event = [labeled("alex", "2026-10-23T10:00:00Z")]
+        tie = [{"body": "night-shift run 1", "created_at": "2026-10-23T10:00:00Z"}]
+        self.assertEqual(self.classify(pr(1), event, tie)[0], "skipped")
+
+    def test_night_actor_comparison_ignores_case(self):
+        status, _ = self.classify(pr(1), [labeled("Night", "2026-10-23T10:00:00Z")], night_actor="night")
+        self.assertEqual(status, "skipped")
+
+
+class SelectReadyPrsCliFailClosedTests(unittest.TestCase):
+    def run_cli(self, tmp, *extra, prs=None):
+        prs_path = Path(tmp) / "prs.json"
+        if prs is not None:
+            prs_path.write_text(json.dumps(prs), encoding="utf-8")
+        return subprocess.run(
+            [sys.executable, str(ROOT / "bin/lib/select_ready_prs.py"), "--prs", str(prs_path),
+             "--events-dir", str(tmp), "--label-ready", "afk-ready", "--label-done", "afk-done",
+             "--label-blocked", "afk-blocked", *extra],
+            capture_output=True, text=True, check=False)
+
+    def write(self, tmp, number, events=True, comments=True, events_text=None):
+        good = json.dumps([labeled("alex", "2026-10-23T10:00:00Z")])
+        if events:
+            (Path(tmp) / f"{number}.events.json").write_text(events_text or good, encoding="utf-8")
+        if comments:
+            (Path(tmp) / f"{number}.comments.json").write_text("[]", encoding="utf-8")
+
+    def test_missing_comments_file_skips_the_pr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write(tmp, 12, comments=False)
+            result = self.run_cli(tmp, prs=[pr(12)])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("skip #12:", result.stderr)
+
+    def test_missing_events_file_skips_the_pr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write(tmp, 12, events=False)
+            result = self.run_cli(tmp, prs=[pr(12)])
+        self.assertEqual(result.stdout, "")
+        self.assertIn("skip #12:", result.stderr)
+
+    def test_empty_files_are_valid_but_not_eligible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write(tmp, 12, events_text="")
+            (Path(tmp) / "12.events.json").write_text("", encoding="utf-8")
+            result = self.run_cli(tmp, prs=[pr(12)])
+        self.assertEqual(result.stdout, "")
+        self.assertIn("skip #12:", result.stderr)
+        self.assertNotIn("not fetched", result.stderr)
+
+    def test_malformed_json_skips_only_that_pr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write(tmp, 12, events_text='{"event": "labeled"}\n{not json}\n')
+            self.write(tmp, 13)
+            result = self.run_cli(tmp, prs=[pr(12, files=("a.yaml",)), pr(13, files=("b.yaml",))])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "13\tbranch-13")
+        self.assertIn("skip #12: unreadable data", result.stderr)
+
+    def test_record_without_number_is_skipped_not_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write(tmp, 13)
+            result = self.run_cli(tmp, prs=[{"headRefName": "x", "labels": [{"name": "afk-ready"}]}, pr(13)])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "13\tbranch-13")
+        self.assertIn("skip #?: unreadable data", result.stderr)
+
+    def test_only_limits_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write(tmp, 12)
+            self.write(tmp, 13)
+            result = self.run_cli(tmp, "--only", "13", prs=[pr(12, files=("a.yaml",)), pr(13, files=("b.yaml",))])
+        self.assertEqual(result.stdout.strip(), "13\tbranch-13")
+
+    def test_missing_prs_file_exits_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_cli(tmp)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("select_ready_prs: cannot read PR list:", result.stderr)
 
 
 if __name__ == "__main__":
