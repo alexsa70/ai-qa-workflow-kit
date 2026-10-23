@@ -398,5 +398,89 @@ class SelectReadyPrsCliFailClosedTests(unittest.TestCase):
         self.assertIn("select_ready_prs: cannot read PR list:", result.stderr)
 
 
+FAKE_GH = """#!/usr/bin/env bash
+case "$1" in
+  pr) cat "$FIXTURES/prs.json" ;;
+  api)
+    n=$(printf '%s' "$2" | sed -E 's#.*/issues/([0-9]+)/.*#\\1#')
+    case "$2" in
+      */events) cat "$FIXTURES/$n.events.json" 2>/dev/null || echo '[]' ;;
+      */comments) cat "$FIXTURES/$n.comments.json" 2>/dev/null || echo '[]' ;;
+    esac ;;
+esac
+"""
+
+CONTEXT = """# Project Context
+
+## Coverage Pipeline
+
+- labels.ready: afk-ready
+- labels.done: afk-done
+- labels.blocked: afk-blocked
+- night.permission_mode: {mode}
+- night.allowed_tools: Read,Edit
+- night.max_turns: 5
+- night.timeout_minutes: 1
+- night.actor_login:
+"""
+
+
+class QaNightTests(unittest.TestCase):
+    def run_night(self, *args, mode="acceptEdits"):
+        tmp = Path(self.tmp.name)
+        target = tmp / "target"
+        (target / "ai-workflow").mkdir(parents=True, exist_ok=True)
+        (target / "ai-workflow" / "project-context.md").write_text(CONTEXT.format(mode=mode), encoding="utf-8")
+        fixtures = tmp / "fixtures"
+        fixtures.mkdir(exist_ok=True)
+        (fixtures / "prs.json").write_text(json.dumps([pr(12), pr(13, files=("b.yaml",))]), encoding="utf-8")
+        (fixtures / "12.events.json").write_text(json.dumps([labeled("alex", "2026-10-23T10:00:00Z")]), encoding="utf-8")
+        (fixtures / "13.events.json").write_text(json.dumps([labeled("ci[bot]", "2026-10-23T10:00:00Z", actor_type="Bot")]), encoding="utf-8")
+        gh = tmp / "gh"
+        gh.write_text(FAKE_GH, encoding="utf-8")
+        gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
+        env = dict(os.environ, QA_NIGHT_GH=str(gh), QA_NIGHT_HOME=str(tmp / "home"),
+                   QA_NIGHT_CLAUDE="false", FIXTURES=str(fixtures))
+        return subprocess.run([str(ROOT / "bin/qa-night"), str(target), *args],
+                              env=env, capture_output=True, text=True, check=False)
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_shell_syntax(self):
+        result = subprocess.run(["bash", "-n", str(ROOT / "bin/qa-night")], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_help(self):
+        result = subprocess.run([str(ROOT / "bin/qa-night"), "--help"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("qa-night <target-path>", result.stdout)
+
+    def test_requires_target(self):
+        result = subprocess.run([str(ROOT / "bin/qa-night")], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("target path is required", result.stderr)
+
+    def test_dry_run_selects_human_labelled_pr_only(self):
+        result = self.run_night("--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("would run: #12 (branch-12)", result.stdout)
+        self.assertNotIn("#13", result.stdout)
+        self.assertIn("skip #13:", result.stderr)
+
+    def test_once_limits_to_one_pr(self):
+        result = self.run_night("--dry-run", "--once", "13")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("nothing to do", result.stdout)
+
+    def test_refuses_bypass_permissions(self):
+        result = self.run_night("--dry-run", mode="bypassPermissions")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("bypassPermissions is not allowed", result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

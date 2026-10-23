@@ -169,8 +169,7 @@ qa-night <target-path> --once <PR>  # one PR, for tuning the prompt
 qa-night <target-path> --dry-run    # list what would run, start nothing
 ```
 
-Per PR: verify the label event's actor is a human (`gh api .../issues/<n>/events`), skip
-otherwise → `git worktree add` on the PR branch → `claude -p` with the night-shift prompt,
+Per PR: the selector (bin/lib/select_ready_prs.py) skips it unless the last ready-label event is from neither a bot nor night.actor_login, it has no done/blocked label, no "night-shift run " comment is newer than that event, and no other open PR changes the same files → `git worktree add` on the PR branch → `claude -p` with the night-shift prompt,
 `--permission-mode` and `--allowedTools` from project context, `--max-turns` and a
 timeout → log to a run directory → remove the worktree only after a successful push; on
 failure keep it and name it in the log. A rerun resumes: the label is still present and
@@ -198,6 +197,7 @@ them.
 | `labels.ready` / `labels.done` / `labels.blocked` | qa-night, night-shift | PR labels |
 | `night.permission_mode` / `night.allowed_tools` | qa-night | headless session permissions |
 | `night.max_turns` / `night.timeout_minutes` | qa-night | per-PR budget |
+| `night.actor_login` | qa-night | login the night shift acts as, when it is a separate account (optional) |
 | `heuristics.project_file` | blackbox | path to the untracked project heuristics |
 
 ### 4.6 Orchestrator
@@ -338,7 +338,7 @@ Two files share one entry format.
 | Authoring skill or `gh` unavailable | `missing capability` blocker |
 | Requirement, inventory and code disagree | grill routes through `source-of-truth`; expectations never follow code |
 | Requirement silent on a black-box finding | `question` finding, never a test |
-| Ready label applied by a bot or by the night shift | PR skipped |
+| Ready label from a bot or night.actor_login, a done/blocked label, or a report newer than the label | PR skipped; the night shift itself never adds the ready label |
 | Preflight fails | `blocked: environment`; no "not verified but green" |
 | Denylist missing | no live run; safe checks only; PR labelled blocked |
 | Budget exceeded | `blocked: budget`; partial work stays committed on the branch |

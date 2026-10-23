@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# qa-night - run the night shift over draft PRs a human labelled ready.
+#
+# Usage:
+#   qa-night <target-path> [--dry-run] [--once <pr-number>]
+#
+# One PR at a time: a git worktree on its branch, a fresh headless Claude
+# session with the night-shift skill, one log per PR under
+# ${QA_NIGHT_HOME:-~/.qa-night}/runs/<run-id>/. Settings come from the
+# "Coverage Pipeline" section of <target>/ai-workflow/project-context.md.
+#
+# Overrides (tests): QA_NIGHT_GH, QA_NIGHT_CLAUDE, QA_NIGHT_HOME.
+
+set -euo pipefail
+
+KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GH="${QA_NIGHT_GH:-gh}"
+CLAUDE="${QA_NIGHT_CLAUDE:-claude}"
+
+usage() { sed -n '4,5p' "$0" | sed 's/^# \{0,1\}//'; }
+
+TARGET=""
+DRY_RUN=0
+ONCE=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --dry-run) DRY_RUN=1 ;;
+    --once) ONCE="${2:-}"; shift ;;
+    *)
+      if [ -z "$TARGET" ]; then TARGET="$1"
+      else echo "qa-night: unexpected argument: $1" >&2; exit 1; fi ;;
+  esac
+  shift
+done
+
+if [ -z "$TARGET" ]; then
+  echo "qa-night: target path is required" >&2
+  usage >&2
+  exit 1
+fi
+if [ ! -d "$TARGET" ]; then
+  echo "qa-night: target path not found: $TARGET" >&2
+  exit 1
+fi
+TARGET="$(cd "$TARGET" && pwd)"
+CONTEXT="$TARGET/ai-workflow/project-context.md"
+if [ ! -f "$CONTEXT" ]; then
+  echo "qa-night: project context is missing: $CONTEXT" >&2
+  exit 1
+fi
+
+cfg() { python3 "$KIT_DIR/bin/lib/pipeline_config.py" --context "$CONTEXT" --key "$1"; }
+cfg_optional() { cfg "$1" 2>/dev/null || true; }
+
+READY="$(cfg labels.ready)"
+DONE="$(cfg labels.done)"
+BLOCKED="$(cfg labels.blocked)"
+MODE="$(cfg night.permission_mode)"
+TOOLS="$(cfg night.allowed_tools)"
+TURNS="$(cfg night.max_turns)"
+MINUTES="$(cfg night.timeout_minutes)"
+NIGHT_ACTOR="$(cfg_optional night.actor_login)"
+
+if [ "$MODE" = "bypassPermissions" ]; then
+  echo "qa-night: bypassPermissions is not allowed" >&2
+  exit 1
+fi
+
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+RUN_DIR="${QA_NIGHT_HOME:-$HOME/.qa-night}/runs/$RUN_ID"
+mkdir -p "$RUN_DIR/pr"
+
+( cd "$TARGET" && "$GH" pr list --state open --limit 200 \
+    --json number,headRefName,isDraft,labels,files ) > "$RUN_DIR/prs.json"
+
+LABELLED="$(python3 -c '
+import json, sys
+prs = json.load(open(sys.argv[1]))
+print(" ".join(str(p["number"]) for p in prs if sys.argv[2] in {l["name"] for l in p.get("labels", [])}))
+' "$RUN_DIR/prs.json" "$READY")"
+
+for n in $LABELLED; do
+  if [ -n "$ONCE" ] && [ "$n" != "$ONCE" ]; then continue; fi
+  ( cd "$TARGET" && "$GH" api "repos/{owner}/{repo}/issues/$n/events" --paginate --jq '.[]' ) \
+    > "$RUN_DIR/pr/$n.events.json"
+  ( cd "$TARGET" && "$GH" api "repos/{owner}/{repo}/issues/$n/comments" --paginate --jq '.[]' ) \
+    > "$RUN_DIR/pr/$n.comments.json"
+done
+
+SELECT=(--prs "$RUN_DIR/prs.json" --events-dir "$RUN_DIR/pr"
+        --label-ready "$READY" --label-done "$DONE" --label-blocked "$BLOCKED"
+        --night-actor "$NIGHT_ACTOR")
+if [ -n "$ONCE" ]; then SELECT+=(--only "$ONCE"); fi
+SELECTED="$(python3 "$KIT_DIR/bin/lib/select_ready_prs.py" "${SELECT[@]}" 2> "$RUN_DIR/skipped.txt")"
+cat "$RUN_DIR/skipped.txt" >&2
+
+if [ -z "$SELECTED" ]; then
+  echo "qa-night: nothing to do (run $RUN_ID)"
+  exit 0
+fi
+if [ "$DRY_RUN" = 1 ]; then
+  printf '%s\n' "$SELECTED" | while IFS="$(printf '\t')" read -r n branch; do
+    echo "would run: #$n ($branch)"
+  done
+  exit 0
+fi
+
+if command -v timeout >/dev/null 2>&1; then TO=(timeout "${MINUTES}m")
+elif command -v gtimeout >/dev/null 2>&1; then TO=(gtimeout "${MINUTES}m")
+else TO=(); echo "qa-night: no timeout command found; running without a time limit" >&2; fi
+
+PROMPT_TEMPLATE="$KIT_DIR/skills/night-shift/assets/night-prompt.md"
+STATUS=0
+while IFS="$(printf '\t')" read -r n branch; do
+  WT="$RUN_DIR/wt-$n"
+  LOG="$RUN_DIR/pr-$n.log"
+  echo "qa-night: #$n ($branch) -> $LOG"
+  if ! git -C "$TARGET" fetch --quiet origin "$branch" >>"$LOG" 2>&1 \
+     || ! git -C "$TARGET" worktree add -B "$branch" "$WT" "origin/$branch" >>"$LOG" 2>&1; then
+    echo "qa-night: #$n worktree failed, see $LOG" >&2
+    STATUS=1
+    continue
+  fi
+  PROMPT="$(sed -e "s|{{PR}}|$n|g" -e "s|{{BRANCH}}|$branch|g" -e "s|{{RUN_ID}}|$RUN_ID|g" \
+                -e "s|{{KIT_DIR}}|$KIT_DIR|g" -e "s|{{TARGET}}|$TARGET|g" "$PROMPT_TEMPLATE")"
+  set +e
+  ( cd "$WT" && ${TO[@]+"${TO[@]}"} "$CLAUDE" -p "$PROMPT" --add-dir "$KIT_DIR" \
+      --permission-mode "$MODE" --allowedTools "$TOOLS" --max-turns "$TURNS" ) \
+    </dev/null >>"$LOG" 2>&1
+  CODE=$?
+  set -e
+  git -C "$WT" fetch --quiet origin "$branch" >>"$LOG" 2>&1 || true
+  if [ -z "$(git -C "$WT" status --porcelain)" ] \
+     && [ -z "$(git -C "$WT" log --oneline "origin/$branch..HEAD" 2>/dev/null)" ]; then
+    git -C "$TARGET" worktree remove "$WT" >>"$LOG" 2>&1 || true
+    echo "qa-night: #$n finished (exit $CODE), worktree removed"
+  else
+    echo "qa-night: #$n left unpushed work, worktree kept: $WT" >&2
+    STATUS=1
+  fi
+  if [ "$CODE" != 0 ]; then STATUS=1; fi
+done <<< "$SELECTED"
+
+exit "$STATUS"

@@ -175,6 +175,14 @@ and skills — use `bin/qa-kit` or follow `docs/kit-only-mode.md`.
 They are not active until wired into a `.claude/settings.json`. See
 `hooks/README.md` for the wiring snippet and per-hook configuration.
 
+## Night Shift Launcher
+
+`bin/qa-night <target> [--dry-run] [--once <pr>]` runs the `night-shift` skill
+over draft pull requests a human labelled ready, one at a time, each in its own
+git worktree and a fresh headless session. Settings come from the target's
+`ai-workflow/project-context.md`, section "Coverage Pipeline". Start with
+`--dry-run`, then `--once <pr>` while tuning the prompt.
+
 ## Design Documents
 
 - `docs/architecture.md` defines the component boundaries.
