@@ -87,7 +87,7 @@ Entry format:
 - **User expects:** the refusal is real: the object is reachable by those allowed and only by them.
 - **Typical failure:** the negative check passes only because the object never existed, was not yet processed, or was typed wrong.
 - **Technique:** roles
-- **Source:** mined: test plans 2; interview: 2026-10-23
+- **Source:** mined: test plans, interview: 2026-10-23
 
 ### H-PERM-01 - Permission leak through derived data
 
@@ -96,7 +96,7 @@ Entry format:
 - **User expects:** a user who cannot open the item sees nothing derived from it, not even that it exists.
 - **Typical failure:** the item is protected but its text, tags or counts show up in a side channel.
 - **Technique:** roles
-- **Source:** mined: test plans 3; mined: legacy API suite A12; interview: 2026-10-23
+- **Source:** mined: test plans, mined: legacy API suite, interview: 2026-10-23
 
 ### H-PERM-02 - Roles by tenants matrix
 
@@ -105,7 +105,7 @@ Entry format:
 - **User expects:** each cell gives the documented allow or refusal; a refusal does not reveal whether the object exists.
 - **Typical failure:** wrong refusal code, cross-tenant data, or a "not yours" answer that confirms existence.
 - **Technique:** decision-table
-- **Source:** mined: legacy API suite A11, A12, A13; mined: legacy UI suite E18; mined: test plans 4; interview: 2026-10-23
+- **Source:** mined: legacy API suite, mined: legacy UI suite, mined: test plans, interview: 2026-10-23
 
 ### H-PERM-03 - Access follows a move or a state change
 
@@ -114,7 +114,7 @@ Entry format:
 - **User expects:** access matches the new location or state at once; links to a pending or rejected object stay closed.
 - **Typical failure:** access persists after a move, or a pending object is searchable, shareable or downloadable.
 - **Technique:** state
-- **Source:** mined: legacy API suite A20, A21; mined: legacy UI suite E19; interview: 2026-10-23
+- **Source:** mined: legacy API suite, mined: legacy UI suite, interview: 2026-10-23
 
 ### H-PERM-04 - Run against every tenant type
 
@@ -123,7 +123,7 @@ Entry format:
 - **User expects:** the feature behaves as documented in each type, with no data crossing between them.
 - **Typical failure:** a flow tested only in the default tenant type breaks or over-exposes data in the other.
 - **Technique:** equivalence
-- **Source:** mined: legacy API suite A11; interview: 2026-10-23
+- **Source:** mined: legacy API suite, interview: 2026-10-23
 
 ### H-PERSIST-01 - Persistence and a second look
 
@@ -132,7 +132,7 @@ Entry format:
 - **User expects:** the same state everywhere; no optimistic screen that lies.
 - **Typical failure:** the change shows only in the current view, a deleted item returns, or counts differ between surfaces.
 - **Technique:** state
-- **Source:** mined: legacy UI suite E3, E7, E12; mined: test plans 18; interview: 2026-10-23
+- **Source:** mined: legacy UI suite, mined: test plans, interview: 2026-10-23
 
 ### H-ASYNC-01 - Search index drifts from the store
 
@@ -141,7 +141,7 @@ Entry format:
 - **User expects:** search shows the current state only; the old name finds nothing; the new content is found.
 - **Typical failure:** the index keeps ghosts of deleted items or misses new ones; old and new states both answer.
 - **Technique:** state
-- **Source:** mined: legacy API suite A24, A26; mined: test plans 1, 17, 18; interview: 2026-10-23
+- **Source:** mined: legacy API suite, mined: test plans, interview: 2026-10-23
 
 ### H-ASYNC-02 - Delete or change while the item is still being processed
 
@@ -150,7 +150,7 @@ Entry format:
 - **User expects:** the item ends up gone or in its latest state, with no ghost in lists, search or storage.
 - **Typical failure:** processing finishes and brings the deleted item back, or leaves orphan data.
 - **Technique:** concurrency
-- **Source:** mined: legacy API suite A24; interview: 2026-10-23
+- **Source:** mined: legacy API suite, interview: 2026-10-23
 
 ### H-ASYNC-03 - Work continues after the first answer
 
@@ -159,7 +159,7 @@ Entry format:
 - **User expects:** the final state equals the last edit and appears within the documented time; early checks do not give false failures.
 - **Typical failure:** the first answer was success but the follow-up work failed silently, or a slower earlier step overwrites a later edit.
 - **Technique:** state
-- **Source:** mined: legacy API suite A26; mined: test plans 18; interview: 2026-10-23
+- **Source:** mined: legacy API suite, mined: test plans, interview: 2026-10-23
 
 ### H-SYNC-01 - Change at the external source
 
@@ -168,7 +168,7 @@ Entry format:
 - **User expects:** the product mirrors the source: renamed once, moved once, deleted gone, nothing duplicated.
 - **Typical failure:** both names shown, the old name still finds the item, or deleted items stay.
 - **Technique:** state
-- **Source:** mined: test plans 19; interview: 2026-10-23
+- **Source:** mined: test plans, interview: 2026-10-23
 
 ### H-SYNC-02 - Same item from two sources
 
@@ -177,7 +177,7 @@ Entry format:
 - **User expects:** both are findable and distinguishable; a source filter returns only that source; deleting one leaves the other.
 - **Typical failure:** the twin replaces or hides the original, or leaks into a filtered result.
 - **Technique:** equivalence
-- **Source:** mined: legacy API suite A12; mined: test plans 7; interview: 2026-10-23
+- **Source:** mined: legacy API suite, mined: test plans, interview: 2026-10-23
 
 ### H-SYNC-03 - Credentials expire mid-sync
 
@@ -195,7 +195,7 @@ Entry format:
 - **User expects:** processing resumes or fails cleanly with a retry; the user sees the real state.
 - **Typical failure:** the item is lost, processed twice, or stuck "in progress" without an error.
 - **Technique:** recovery
-- **Source:** mined: test plans 23; interview: 2026-10-23
+- **Source:** mined: test plans, interview: 2026-10-23
 
 ### H-FAULT-02 - Interrupt the request mid-flight
 
@@ -204,7 +204,7 @@ Entry format:
 - **User expects:** either complete or nothing; a retry works and does not leave a ghost item.
 - **Typical failure:** a half-created item that cannot be completed, deleted or re-uploaded.
 - **Technique:** interruption
-- **Source:** mined: legacy API suite A18; mined: legacy UI suite E22; interview: 2026-10-23
+- **Source:** mined: legacy API suite, mined: legacy UI suite, interview: 2026-10-23
 
 ### H-VOL-01 - Time to done at realistic volume
 
@@ -213,7 +213,7 @@ Entry format:
 - **User expects:** completion in a time the user can plan around, with visible progress.
 - **Typical failure:** one file works, a thousand take many hours, or the queue starves other users.
 - **Technique:** data
-- **Source:** mined: legacy UI suite E23; mined: legacy API suite A19; interview: 2026-10-23
+- **Source:** mined: legacy UI suite, mined: legacy API suite, interview: 2026-10-23
 
 ### H-VOL-02 - Nothing stays "in progress" forever
 
@@ -222,7 +222,7 @@ Entry format:
 - **User expects:** a final state, success or failure, with a reason and a way to retry.
 - **Typical failure:** the status spins indefinitely with no error and no retry.
 - **Technique:** state
-- **Source:** mined: legacy API suite A18; interview: 2026-10-23
+- **Source:** mined: legacy API suite, interview: 2026-10-23
 
 ### H-SRCH-01 - The user can find their own item
 
@@ -231,7 +231,7 @@ Entry format:
 - **User expects:** every surface finds it once, within the documented time.
 - **Typical failure:** one surface misses it, or a pre-existing match hides the real miss.
 - **Technique:** journey
-- **Source:** mined: test plans 1; mined: legacy UI suite E9; interview: 2026-10-23
+- **Source:** mined: test plans, mined: legacy UI suite, interview: 2026-10-23
 
 ### H-FILE-01 - Awkward files and names
 
@@ -240,7 +240,7 @@ Entry format:
 - **User expects:** a clear refusal, or a result that is complete and flagged where content is missing; original preserved.
 - **Typical failure:** "ready" with empty content, a blank viewer, or a valid file refused.
 - **Technique:** data
-- **Source:** mined: legacy API suite A10; mined: legacy UI suite E15; mined: test plans 12, 13, 14; interview: 2026-10-23
+- **Source:** mined: legacy API suite, mined: legacy UI suite, mined: test plans, interview: 2026-10-23
 
 ### H-PAGE-01 - Paging and result-count edges
 
@@ -249,4 +249,4 @@ Entry format:
 - **User expects:** no item skipped or repeated across pages; a known item is never cut off by a cap without notice.
 - **Typical failure:** items lost at page seams, duplicates, or a hard error on an out-of-range page.
 - **Technique:** boundary
-- **Source:** mined: legacy API suite A4, A5; mined: test plans 8, 9
+- **Source:** mined: legacy API suite, mined: test plans

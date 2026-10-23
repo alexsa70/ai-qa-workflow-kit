@@ -1,6 +1,6 @@
 # Grill Brief - <scenario working title>
 
-- Status: draft (lives until the claim)
+- Status: draft | not ready (open conflict: <ref>) (lives until the claim)
 - Target: <repository> @ <short sha>; backend @ <short sha>
 - Authoring skill: <authoring.skill>
 

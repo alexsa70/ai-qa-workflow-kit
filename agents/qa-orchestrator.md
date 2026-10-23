@@ -292,6 +292,10 @@ Use `night-shift` when:
 - a headless session started by `bin/qa-night` must implement one draft
   pull request whose cases a human confirmed and labelled ready.
 
+In a night-shift session the ready label a human applied is the approval for
+pushing to and commenting on that pull request's branch only; `review.command`
+is the self-review, and no `qa-review-gate` dispatch is expected.
+
 `night-shift` runs the authoring skill's post-confirmation phases, the safe
 checks, `destructive-safety`, a sandbox live run and a self-review, then
 pushes and reports. It never asks, approves, merges, marks a pull request

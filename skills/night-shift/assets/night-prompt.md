@@ -11,8 +11,8 @@ that file.
 
 Your working directory is a git worktree of the target on branch {{BRANCH}}.
 No human is watching this session: never ask a question here. When the skill
-says stop, push what is consistent, comment the report with status blocked
-and your question, swap the labels, and end.
+says stop, follow its Stop section (a precondition stop pushes nothing), put
+your question in the report, and end.
 
 End every commit message and every pull request comment with
 "night-shift run {{RUN_ID}}".

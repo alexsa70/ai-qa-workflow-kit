@@ -65,7 +65,10 @@ commit, no push (see Stop).
 Only `done` or `blocked`. `done` only when every case passed. Any failed or
 not verified case, a failed live run, or any Stop is `blocked`, with the
 reason in "Blocked on" as one type - product-defect, test-defect,
-environment, not-verified, scope or question - plus the evidence.
+environment, not-verified, scope, question or budget - plus the evidence.
+When a session ends non-zero (timeout, turn limit, crash) and the pull request
+still carries `labels.ready`, `bin/qa-night` itself posts a `blocked` report
+with reason `budget` and swaps the labels.
 
 ## Stop
 
@@ -94,8 +97,11 @@ Every report comment keeps the `night-shift run <run id>` marker.
 ## Never
 
 - ask a question inside the session; the question goes into the report;
-- add the ready label, mark the pull request ready (`gh pr ready`), merge,
-  record approval, or edit approval fields;
+- add the ready label, mark the pull request ready (`gh pr ready`), merge
+  (including `gh pr merge --auto`), approve (`gh pr review --approve`), record
+  approval, or edit approval fields;
+- close a pull request (`gh pr close`), delete a branch, or touch any other
+  pull request or branch;
 - force-push, push to the default branch, or rewrite earlier commits;
 - run with `bypassPermissions`, or publish to a non-sandbox target;
 - change an expectation to match what the product does.
@@ -112,5 +118,5 @@ Every report comment keeps the `night-shift run <run id>` marker.
 **Evidence:** <failing step, expected vs actual, resource ids - for every non-pass>
 **Self-review:** <level, findings fixed, findings left with reason>
 **Commits:** <short sha - subject>
-**Blocked on:** <reason type and the exact question for a human, or "-">
+**Blocked on:** <reason type (product-defect | test-defect | environment | not-verified | scope | question | budget) and the exact question for a human, or "-">
 ```

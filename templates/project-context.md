@@ -147,6 +147,12 @@ Read by `coverage-backlog`, `requirement-grill`, `blackbox-review`,
 command, a path, a name or free text the skill reads literally. A skill stops
 with a `missing context` blocker when a key it needs is empty.
 
+For `night.allowed_tools` use narrow patterns such as
+`Bash(git push origin HEAD:*)`, `Bash(gh pr comment:*)` and
+`Bash(gh pr edit:*)`; broad `Bash(gh pr:*)` or `Bash(git push:*)` are unsafe.
+`bin/qa-night` always adds deny rules (merge, ready, review, close, `gh api`,
+force-push, push to the default branch, edits to the kit) that win over these.
+
 - coverage.uncovered_command:
 - coverage.detail_command:
 - coverage.day_batch_size: 3
