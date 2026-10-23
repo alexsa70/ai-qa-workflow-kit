@@ -1,7 +1,7 @@
 # Grill Brief - <scenario working title>
 
 - Status: draft (lives until the claim)
-- Target: <repository> @ <short sha>
+- Target: <repository> @ <short sha>; backend @ <short sha>
 - Authoring skill: <authoring.skill>
 
 ## Units

@@ -37,15 +37,26 @@ and any `outside-inventory` findings the user supplies or points to.
 A missing key is a `missing context` blocker naming the key. Never substitute
 a command of your own.
 
+When the user names one or more domains, filter the board to them and say so
+in the header.
+
 ## Procedure
 
 1. **Collect.** Run `coverage.uncovered_command` from the target root. Record
-   the exact command and `git rev-parse --short HEAD`. It is read-only; if it
-   needs network or credentials, stop and report.
+   the exact command and `git rev-parse --short HEAD`. It is read-only. If it
+   fails for any reason (network, credentials, missing dependency, non-zero
+   exit), stop, report the exact command and error, and produce the blocked
+   output. Never guess units. If it lists only critical units, write "P1 not
+   computed by the configured command" in the header instead of reporting zero.
+   If the open-PR listing fails, still compute the board, write "open pull
+   requests not checked - claims may be missing" in the header, label every
+   unit HITL and give no recommendation.
 2. **Exclude what is taken.** A unit is taken when the coverage tool reports a
    claim, or an open pull request names the unit id in its title, body or
    changed scenario files. A unit the tool reports as a twin of another
-   domain's unit is excluded with the note "automate in <domain>".
+   domain's unit is excluded with the note "automate in <domain>". Rely only on
+   what the coverage tool prints or the PR list shows; if the tool output has
+   no claim or twin information, write "claims/twins: not reported by the tool".
 3. **Tier.** P0: units the inventory marks critical. P1: other inventory
    units. P2: `outside-inventory` findings. Inside a tier, group by domain.
 4. **Find blockers.** Read each candidate's inventory entry only far enough to
@@ -70,7 +81,8 @@ a command of your own.
 6. **Group.** Units that share actor, preconditions and observable outcome
    become one suggested scenario with several cases.
 7. **Recommend.** Pick `coverage.day_batch_size` units: highest tier first,
-   unblocked, preferring units that unblock others.
+   unblocked. Tie-break: unblocks most other units, then highest tier, then
+   the order the tool printed.
 
 ## Output
 
@@ -85,6 +97,15 @@ Next <N> for the day shift:
 1. <unit> - <one line why now>
 
 Blockers to raise: <infra items with the units they hold back>
+```
+
+When the collect step fails, output only:
+
+```text
+Backlog blocked - <target> @ <sha>
+Command: <exact command>
+Error: <first relevant lines>
+Next: <what the user must fix>
 ```
 
 Write the board to chat. Write it to a file only when the user asks, and then

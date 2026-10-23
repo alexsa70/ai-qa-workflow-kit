@@ -29,14 +29,22 @@ Do not use it to write the scenario or the test (the authoring skill named in
   `backend.checkout`;
 - `authoring.skill`, to shape the brief for it.
 
-A missing key is a `missing context` blocker. A requirement page that cannot
-be fetched is recorded under "Sources read" as unavailable, never imagined.
+A missing key is a `missing context` blocker. A requirement or design
+document that cannot be fetched is recorded under "Sources read" as
+unavailable, never imagined; it is not a blocker by itself. Record both the
+target sha and the backend checkout sha in the brief. If the checkout lacks
+code the inventory cites, add "backend checkout may be stale" to Open
+questions instead of reading another revision.
 
 ## Procedure
 
 1. **Read first, ask second.** Read the inventory entry, the cited code and
    the requirement. Note every disagreement between them before the first
-   question.
+   question. If the coverage tool or the scenario files show the unit is
+   already covered by an approved scenario, do not grill it as new: report the
+   scenario id and offer two paths - grill only an uncovered variant or gap of
+   it, or, only if the expected behaviour itself changed, prepare a successor
+   scenario (the authoring skill decides ids).
 2. **Interview.** Ask exactly one question per message. Every question carries
    your recommended answer and why. Prefer a short list of real alternatives.
    Use the platform's question tool when it exists; plain text otherwise.
@@ -45,8 +53,11 @@ be fetched is recorded under "Sources read" as unavailable, never imagined.
    1. the observable outcome - what exactly is asserted, and where a user or
       client would see it;
    2. disagreements - requirement vs inventory vs code. Route each through
-      `source-of-truth`. Never change an expectation to match the code; a
-      known defect is recorded, not made green;
+      `source-of-truth`: record the conflict in the brief's Open questions and
+      invoke that skill when it is available in the session, otherwise ask the
+      user. While unresolved, the affected case stays open and the brief is
+      marked not ready for the authoring skill. Never change an expectation to
+      match the code; a known defect is recorded, not made green;
    3. actor, organisation set-up and variants;
    4. preconditions and test data, and how runs avoid colliding;
    5. waiting - what is polled, how often, the deadline and its start event;
@@ -65,6 +76,10 @@ be fetched is recorded under "Sources read" as unavailable, never imagined.
 
 - One question per message; always a recommendation.
 - Never read a fact into the brief that no source showed; mark it open.
+- The critical flag comes from the inventory entry or the coverage tool; if
+  neither is readable, write "unknown".
+- When the user accepts a recommendation, that is their answer; record it
+  normally, with no separate marking.
 - Never write repository files, scenarios, tests or approval records.
 - The brief names units by their inventory ids exactly as the inventory spells
   them.

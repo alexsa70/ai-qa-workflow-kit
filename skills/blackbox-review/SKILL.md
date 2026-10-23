@@ -26,13 +26,22 @@ authoring skill named in `authoring.skill`).
 
 - the mode: `proposed` or `audit`;
 - the requirement, fetched as `requirements.source` describes;
+- the inventory location, `requirements.inventory_paths`;
 - the cases: a grill brief, or scenario files and their test classes;
 - heuristics: `references/heuristics.md` in this skill, and the file named by
   `heuristics.project_file` when the key is set. If the key is set and the
   file is missing, say so and continue with the kit file only.
 
-Out of bounds: product source code, inventory `src` citations, code comments.
-Test code is read only for what it asserts, not for how the product works.
+Out of bounds: product source code, configuration, inventory `src` citations,
+code comments. Requirement and design documents count as requirements even
+when they live in the backend repository. Test code is read only for what it
+asserts, not for how the product works. Scenario files may carry provenance,
+code citations or defect notes that point at code: skip those fields, and if
+they were seen, mark the affected findings "may be influenced by code notes".
+
+If the requirement is unavailable, use the scenario's own stated outcome and
+preconditions as a stand-in, say so in the report header, and mark findings
+that depend on it.
 
 ## Procedure
 
@@ -48,10 +57,13 @@ Test code is read only for what it asserts, not for how the product works.
    experiences them.
 3. **Apply heuristics.** For each heuristic whose "Applies when" matches, try
    its probe against the cases. Cite the heuristic id on every finding it
-   produced.
+   produced: kit ids bare (`H-PERM-02`), project ids with a `P:` prefix
+   (`P:H-FAULT-01`), because ids may repeat across the two files.
 4. **Classify each finding:**
    - `variant` - an existing case gains a variant;
-   - `new-case-in-inventory` - a new case for a unit already in the inventory;
+   - `new-case-in-inventory` - a new case for a unit already in the inventory
+     (to tell it from `outside-inventory`, read inventory unit titles and
+     descriptions, never their source citations);
    - `outside-inventory` - behaviour no inventory unit describes; a new case
      with an empty coverage list and an outside-inventory reason, and a P2
      backlog unit;
@@ -60,12 +72,18 @@ Test code is read only for what it asserts, not for how the product works.
      to the product owner.
 5. **Rank.** Risk is high when a user would lose data, see another user's data,
    be blocked on the main path, or get a silent wrong result; medium when the
-   user is confused or must retry; low otherwise.
+   user is confused or must retry; low otherwise. For a `question`, rate the
+   risk of the behaviour the question is about.
+   For back-end or API scenarios the "user" is the API client or the person
+   using the product through it; "user would notice" means what that client
+   observes in responses, later reads or search results.
 6. **Report** with `assets/findings.md`.
 
 ## Rules
 
 - Never read product source code in this review.
+- In audit mode, a case with no test class is reviewed from its scenario text
+  only and noted "no automation".
 - Never write scenarios, tests, heuristics files or approval records.
 - Every finding states what the user does and what the user would notice.
 - Do not repeat what a case already checks; cite the case id when close.
