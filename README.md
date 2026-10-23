@@ -97,13 +97,18 @@ ai-qa-workflow-kit/
 │   │   │   └── testmo-csv-format.md
 │   │   └── scripts/
 │   │       └── tests_to_testmo_csv.py
-│   └── destructive-safety/
+│   ├── destructive-safety/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── openai.yaml
+│   │   │   └── claude.yaml
+│   │   └── assets/
+│   │       └── seeded-ids.template.json
+│   └── coverage-backlog/
 │       ├── SKILL.md
-│       ├── agents/
-│       │   ├── openai.yaml
-│       │   └── claude.yaml
-│       └── assets/
-│           └── seeded-ids.template.json
+│       └── agents/
+│           ├── openai.yaml
+│           └── claude.yaml
 ├── docs/
 │   ├── architecture.md
 │   ├── component-inventory.md

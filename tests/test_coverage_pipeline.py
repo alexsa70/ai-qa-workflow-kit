@@ -109,5 +109,28 @@ class ProjectAgnosticTests(unittest.TestCase):
                     self.assertNotIn(term, text, f"{path.relative_to(ROOT)} names '{term}'")
 
 
+PIPELINE_SKILLS = ["coverage-backlog"]
+
+
+class PipelineSkillTests(unittest.TestCase):
+    def test_pipeline_skills_exist_and_are_small(self):
+        for name in PIPELINE_SKILLS:
+            path = ROOT / "skills" / name / "SKILL.md"
+            self.assertTrue(path.is_file(), name)
+            lines = path.read_text(encoding="utf-8").splitlines()
+            self.assertLessEqual(len(lines), 200, f"{name}: {len(lines)} lines")
+
+    def test_orchestrator_routes_pipeline_skills(self):
+        text = (ROOT / "agents" / "qa-orchestrator.md").read_text(encoding="utf-8")
+        self.assertIn("`coverage-planning`", text)
+        for name in PIPELINE_SKILLS:
+            self.assertIn(f"Use `{name}` when:", text, name)
+
+    def test_launchers_allow_the_project_authoring_skill(self):
+        for relative in ("bin/qa-kit", "docs/kit-only-mode.md"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("authoring.skill", text, relative)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -62,6 +62,8 @@ Assign one primary task type:
 - `bug-fixing`: reproduce and repair a failure;
 - `review`: inspect changes and verification gaps;
 - `ci-cd`: change pipeline or scheduled test execution;
+- `coverage-planning`: choose, align and schedule coverage work across
+  requirement-inventory units;
 - `workflow-maintenance`: change AI workflow components or project integration.
 
 For a mixed request, create an ordered sequence and activate only the first
@@ -252,6 +254,16 @@ that to `test-design`). It reads the project denylist and never edits it, never
 relaxes a pattern, and never authorizes production execution. If the denylist is
 missing, stop with a `missing capability` blocker instead of proceeding against
 a live system.
+
+Use `coverage-backlog` when:
+
+- the user asks what to cover next or plans a day of scenario work;
+- uncovered requirement units must be checked against open claims;
+- `outside-inventory` findings must become backlog units.
+
+`coverage-backlog` is read-only. It computes the board from the project's
+coverage command and open pull requests on every run and never stores it,
+claims a unit or opens a pull request.
 
 ## Agent Routing
 
