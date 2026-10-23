@@ -46,6 +46,10 @@ and AI-platform details.
 | Coverage matrix | Artifact schema | `coverage-plan` | Explicit applicable, covered, missing, and waived dimensions | Fixed project taxonomy and TestMO naming | `extract` | P1 |
 | Approval record | Artifact schema | Existing confirmation gates | Durable evidence of approved scope and transition | Currently often exists only in conversation | `review` | P1 |
 | Verification result | Artifact schema | Review skills and QA gate agents | Records command, scope, result, and limitations | Commands differ by project | `extract` | P1 |
+| Coverage backlog | Skill | Kit (`skills/coverage-backlog`) | Computed, never-stored kanban over uncovered inventory units | Coverage command and inventory paths via project context | `adopt` | P1 |
+| Requirement grill | Skill | Kit (`skills/requirement-grill`) | One-question-at-a-time alignment before a claim | Authoring skill named via project context | `adopt` | P1 |
+| Black-box review | Skill | Kit (`skills/blackbox-review`) | User-side additions without reading code; heuristics files | Product heuristics in an untracked project file | `adopt` | P1 |
+| Night shift | Skill + launcher | Kit (`skills/night-shift`, `bin/qa-night`) | AFK implementation of confirmed scenario PRs, sequential, fresh context | Commands, labels, permissions via project context | `adopt` | P2 |
 
 ## Agent Candidates
 

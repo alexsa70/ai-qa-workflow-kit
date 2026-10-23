@@ -140,6 +140,41 @@ question.
 - Cleanup repair policy:
 - Artifact update rule:
 
+## Coverage Pipeline
+
+Read by `coverage-backlog`, `requirement-grill`, `blackbox-review`,
+`night-shift` and `bin/qa-night`. One `- key: value` per line. A value is a
+command, a path, a name or free text the skill reads literally. A skill stops
+with a `missing context` blocker when a key it needs is empty.
+
+For `night.allowed_tools` use narrow patterns such as
+`Bash(git push origin HEAD:*)`, `Bash(gh pr comment:*)` and
+`Bash(gh pr edit:*)`; broad `Bash(gh pr:*)` or `Bash(git push:*)` are unsafe.
+`bin/qa-night` always adds deny rules (merge, ready, review, close, `gh api`,
+force-push, push to the default branch, edits to the kit) that win over these.
+
+- coverage.uncovered_command:
+- coverage.detail_command:
+- coverage.day_batch_size: 3
+- requirements.source:
+- requirements.inventory_paths:
+- backend.checkout:
+- authoring.skill:
+- authoring.after_checkpoint_phases:
+- checks.safe:
+- checks.preflight:
+- run.live_sandbox:
+- review.command:
+- labels.ready: afk-ready
+- labels.done: afk-done
+- labels.blocked: afk-blocked
+- night.permission_mode: acceptEdits
+- night.allowed_tools:
+- night.max_turns: 200
+- night.timeout_minutes: 120
+- night.actor_login:
+- heuristics.project_file:
+
 ## Known Constraints
 
 - None recorded.

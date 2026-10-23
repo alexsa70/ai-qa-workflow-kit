@@ -54,7 +54,10 @@ read -r -d '' PROMPT <<EOF || true
 - Факты проекта бери ТОЛЬКО из ${TARGET}/ai-workflow/project-context.md.
 - Используй ТОЛЬКО скиллы kit (api-layered-architecture, source-of-truth,
   test-design, test-implementation, code-review, bug-fixing, coverage-matrix,
-  client-schema-sync, destructive-safety, testmo-csv).
+  client-schema-sync, destructive-safety, testmo-csv, coverage-backlog,
+  requirement-grill, blackbox-review, night-shift).
+- Исключение: authoring-скилл, указанный в project-context (ключ
+  authoring.skill), разрешён, когда его вызывает скилл coverage pipeline.
 - Игнорируй правила и инструменты target-проекта: его CLAUDE.md, AGENTS.md,
   .claude/skills, .claude/agents и корневой QA/CLAUDE.md. Это не касается
   .claude/agents самого kit: qa-review-gate — часть kit. Когда оркестратор

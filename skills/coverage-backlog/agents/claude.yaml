@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coverage Backlog"
+  short_description: "Compute the next coverage work as a kanban board"
+  default_prompt: "Use the coverage-backlog skill to compute the uncovered units, exclude claimed ones, and recommend the next units with blockers and AFK or HITL labels."

@@ -62,6 +62,8 @@ Assign one primary task type:
 - `bug-fixing`: reproduce and repair a failure;
 - `review`: inspect changes and verification gaps;
 - `ci-cd`: change pipeline or scheduled test execution;
+- `coverage-planning`: choose, align and schedule coverage work across
+  requirement-inventory units;
 - `workflow-maintenance`: change AI workflow components or project integration.
 
 For a mixed request, create an ordered sequence and activate only the first
@@ -252,6 +254,53 @@ that to `test-design`). It reads the project denylist and never edits it, never
 relaxes a pattern, and never authorizes production execution. If the denylist is
 missing, stop with a `missing capability` blocker instead of proceeding against
 a live system.
+
+Use `coverage-backlog` when:
+
+- the user asks what to cover next or plans a day of scenario work;
+- uncovered requirement units must be checked against open claims;
+- `outside-inventory` findings must become backlog units.
+
+`coverage-backlog` is read-only. It computes the board from the project's
+coverage command and open pull requests on every run and never stores it,
+claims a unit or opens a pull request.
+
+Use `requirement-grill` when:
+
+- a requirement-inventory unit is about to be claimed for a new scenario;
+- a unit's expected behaviour, variants, cleanup or scope is unclear;
+- a requirement page or meeting transcript must become agreed cases.
+
+`requirement-grill` asks one question at a time with a recommendation and
+produces a grill brief for the project's authoring skill. It writes no
+scenario, test or approval and routes every factual conflict through
+`source-of-truth`.
+
+Use `blackbox-review` when:
+
+- a grill brief or draft scenario should be checked from the user's side
+  before it is claimed;
+- finished scenarios of a domain should be audited for user-side gaps;
+- coverage derived from code may miss what users actually do.
+
+`blackbox-review` never reads product source code and never writes tests,
+scenarios or approvals. Its `outside-inventory` findings go to
+`coverage-backlog`; its `question` findings go to `source-of-truth`.
+
+Use `night-shift` when:
+
+- a headless session started by `bin/qa-night` must implement one draft
+  pull request whose cases a human confirmed and labelled ready.
+
+In a night-shift session the ready label a human applied is the approval for
+pushing to and commenting on that pull request's branch only; `review.command`
+is the self-review, and no `qa-review-gate` dispatch is expected.
+
+`night-shift` runs the authoring skill's post-confirmation phases, the safe
+checks, `destructive-safety`, a sandbox live run and a self-review, then
+pushes and reports. It never asks, approves, merges, marks a pull request
+ready, adds the ready label or widens scope; any deviation ends the run as
+blocked.
 
 ## Agent Routing
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Night Shift"
+  short_description: "Implement one confirmed scenario PR without a human"
+  default_prompt: "Use $night-shift to implement this confirmed scenario pull request, prove it in the sandbox, push, report and swap the labels."

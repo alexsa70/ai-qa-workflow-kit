@@ -1,0 +1,4 @@
+interface:
+  display_name: "Requirement Grill"
+  short_description: "Align on one requirement unit before claiming it"
+  default_prompt: "Use $requirement-grill to interview me one question at a time about this unit and produce a grill brief for the authoring skill."
