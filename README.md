@@ -116,15 +116,22 @@ ai-qa-workflow-kit/
 │   │   │   └── claude.yaml
 │   │   └── assets/
 │   │       └── grill-brief.md
-│   └── blackbox-review/
+│   ├── blackbox-review/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── openai.yaml
+│   │   │   └── claude.yaml
+│   │   ├── assets/
+│   │   │   └── findings.md
+│   │   └── references/
+│   │       └── heuristics.md
+│   └── night-shift/
 │       ├── SKILL.md
 │       ├── agents/
 │       │   ├── openai.yaml
 │       │   └── claude.yaml
-│       ├── assets/
-│       │   └── findings.md
-│       └── references/
-│           └── heuristics.md
+│       └── assets/
+│           └── night-prompt.md
 ├── docs/
 │   ├── architecture.md
 │   ├── component-inventory.md

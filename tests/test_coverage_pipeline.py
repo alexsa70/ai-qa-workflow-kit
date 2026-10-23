@@ -109,7 +109,7 @@ class ProjectAgnosticTests(unittest.TestCase):
                     self.assertNotIn(term, text, f"{path.relative_to(ROOT)} names '{term}'")
 
 
-PIPELINE_SKILLS = ["coverage-backlog", "requirement-grill", "blackbox-review"]
+PIPELINE_SKILLS = ["coverage-backlog", "requirement-grill", "blackbox-review", "night-shift"]
 
 
 class PipelineSkillTests(unittest.TestCase):
@@ -175,6 +175,20 @@ class HeuristicsFormatTests(unittest.TestCase):
         text = (ROOT / "skills/blackbox-review/assets/findings.md").read_text(encoding="utf-8")
         for category in ("variant", "new-case-in-inventory", "outside-inventory", "question"):
             self.assertIn(category, text, category)
+
+
+class NightShiftContentTests(unittest.TestCase):
+    def test_prompt_has_every_placeholder(self):
+        text = (ROOT / "skills/night-shift/assets/night-prompt.md").read_text(encoding="utf-8")
+        for placeholder in ("{{PR}}", "{{BRANCH}}", "{{RUN_ID}}", "{{KIT_DIR}}", "{{TARGET}}"):
+            self.assertIn(placeholder, text, placeholder)
+        self.assertIn("night-shift run {{RUN_ID}}", text)
+
+    def test_skill_forbids_approval_and_merge(self):
+        text = (ROOT / "skills/night-shift/SKILL.md").read_text(encoding="utf-8")
+        for phrase in ("gh pr ready", "merge", "approval", "force-push", "bypassPermissions",
+                       "ready label", "destructive-safety"):
+            self.assertIn(phrase, text, phrase)
 
 
 if __name__ == "__main__":

@@ -287,6 +287,17 @@ Use `blackbox-review` when:
 scenarios or approvals. Its `outside-inventory` findings go to
 `coverage-backlog`; its `question` findings go to `source-of-truth`.
 
+Use `night-shift` when:
+
+- a headless session started by `bin/qa-night` must implement one draft
+  pull request whose cases a human confirmed and labelled ready.
+
+`night-shift` runs the authoring skill's post-confirmation phases, the safe
+checks, `destructive-safety`, a sandbox live run and a self-review, then
+pushes and reports. It never asks, approves, merges, marks a pull request
+ready, adds the ready label or widens scope; any deviation ends the run as
+blocked.
+
 ## Agent Routing
 
 Beyond the skills above, the kit ships one specialist agent.
