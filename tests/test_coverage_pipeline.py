@@ -2,6 +2,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -196,6 +197,7 @@ LABELS = {"ready": "afk-ready", "done": "afk-done", "blocked": "afk-blocked"}
 
 def pr(number, labels=("afk-ready",), draft=True, files=("catalog/x.yaml",)):
     return {"number": number, "headRefName": f"branch-{number}", "isDraft": draft,
+            "isCrossRepository": False,
             "labels": [{"name": name} for name in labels],
             "files": [{"path": path} for path in files]}
 
@@ -399,14 +401,21 @@ class SelectReadyPrsCliFailClosedTests(unittest.TestCase):
 
 
 FAKE_GH = """#!/usr/bin/env bash
+# Answers like the real gh: `api ... --jq '.[]'` prints one JSON object per line.
 case "$1" in
   pr) cat "$FIXTURES/prs.json" ;;
+  repo) printf '%s\\n' "${FAKE_DEFAULT_BRANCH-main}" ;;
   api)
     n=$(printf '%s' "$2" | sed -E 's#.*/issues/([0-9]+)/.*#\\1#')
     case "$2" in
-      */events) cat "$FIXTURES/$n.events.json" 2>/dev/null || echo '[]' ;;
-      */comments) cat "$FIXTURES/$n.comments.json" 2>/dev/null || echo '[]' ;;
-    esac ;;
+      */events) f="$FIXTURES/$n.events.json" ;;
+      */comments) f="$FIXTURES/$n.comments.json" ;;
+      *) exit 1 ;;
+    esac
+    if [ -f "$f" ]; then
+      python3 -c 'import json, sys; [print(json.dumps(x)) for x in json.load(open(sys.argv[1]))]' "$f"
+    fi ;;
+  *) exit 1 ;;
 esac
 """
 
@@ -425,22 +434,37 @@ CONTEXT = """# Project Context
 """
 
 
+def has_timeout_command():
+    return bool(shutil.which("timeout") or shutil.which("gtimeout"))
+
+
+def write_gh_fixtures(tmp, prs, human_labelled):
+    fixtures = tmp / "fixtures"
+    fixtures.mkdir(exist_ok=True)
+    (fixtures / "prs.json").write_text(prs if isinstance(prs, str) else json.dumps(prs), encoding="utf-8")
+    for number in human_labelled:
+        (fixtures / f"{number}.events.json").write_text(
+            json.dumps([labeled("alex", "2026-10-23T10:00:00Z")]), encoding="utf-8")
+    gh = tmp / "gh"
+    gh.write_text(FAKE_GH, encoding="utf-8")
+    gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
+    return fixtures, gh
+
+
 class QaNightTests(unittest.TestCase):
-    def run_night(self, *args, mode="acceptEdits"):
+    def run_night(self, *args, mode="acceptEdits", prs=None, extra_env=None):
         tmp = Path(self.tmp.name)
         target = tmp / "target"
         (target / "ai-workflow").mkdir(parents=True, exist_ok=True)
         (target / "ai-workflow" / "project-context.md").write_text(CONTEXT.format(mode=mode), encoding="utf-8")
-        fixtures = tmp / "fixtures"
-        fixtures.mkdir(exist_ok=True)
-        (fixtures / "prs.json").write_text(json.dumps([pr(12), pr(13, files=("b.yaml",))]), encoding="utf-8")
-        (fixtures / "12.events.json").write_text(json.dumps([labeled("alex", "2026-10-23T10:00:00Z")]), encoding="utf-8")
+        if prs is None:
+            prs = [pr(12), pr(13, files=("b.yaml",))]
+        fixtures, gh = write_gh_fixtures(tmp, prs, human_labelled=(12, 14, 15, 16))
         (fixtures / "13.events.json").write_text(json.dumps([labeled("ci[bot]", "2026-10-23T10:00:00Z", actor_type="Bot")]), encoding="utf-8")
-        gh = tmp / "gh"
-        gh.write_text(FAKE_GH, encoding="utf-8")
-        gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
         env = dict(os.environ, QA_NIGHT_GH=str(gh), QA_NIGHT_HOME=str(tmp / "home"),
                    QA_NIGHT_CLAUDE="false", FIXTURES=str(fixtures))
+        env.pop("QA_NIGHT_ALLOW_NO_TIMEOUT", None)
+        env.update(extra_env or {})
         return subprocess.run([str(ROOT / "bin/qa-night"), str(target), *args],
                               env=env, capture_output=True, text=True, check=False)
 
@@ -476,10 +500,170 @@ class QaNightTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("nothing to do", result.stdout)
 
+    def test_dry_run_once_selects_only_that_pr(self):
+        result = self.run_night("--dry-run", "--once", "12")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("would run: #12 (branch-12)", result.stdout)
+        self.assertNotIn("#13", result.stdout + result.stderr)
+
+    def test_once_requires_a_pr_number(self):
+        for args in (("--dry-run", "--once", "abc"), ("--dry-run", "--once", ""), ("--dry-run", "--once")):
+            with self.subTest(args=args):
+                result = self.run_night(*args)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("qa-night: --once needs a PR number", result.stderr)
+
     def test_refuses_bypass_permissions(self):
         result = self.run_night("--dry-run", mode="bypassPermissions")
         self.assertEqual(result.returncode, 1)
         self.assertIn("bypassPermissions is not allowed", result.stderr)
+
+    def test_dry_run_skips_fork_default_branch_and_unsafe_branch(self):
+        fork = dict(pr(14, files=("c.yaml",)), isCrossRepository=True)
+        default = dict(pr(15, files=("d.yaml",)), headRefName="main")
+        unsafe = dict(pr(16, files=("e.yaml",)), headRefName="feat&rm -rf")
+        result = self.run_night("--dry-run", prs=[pr(12), fork, default, unsafe])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("would run: #12 (branch-12)", result.stdout)
+        for number in ("#14", "#15", "#16"):
+            self.assertNotIn(number, result.stdout)
+        self.assertIn("skip #14: PR from a fork", result.stderr)
+        self.assertIn("skip #15: head is the default branch", result.stderr)
+        self.assertIn("skip #16: unsafe branch name", result.stderr)
+
+    def test_unknown_default_branch_runs_nothing(self):
+        result = self.run_night("--dry-run", extra_env={"FAKE_DEFAULT_BRANCH": ""})
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("would run", result.stdout)
+        self.assertIn("cannot determine the default branch", result.stderr)
+
+    def test_selector_failure_is_reported(self):
+        result = self.run_night("--dry-run", prs="not json")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("select_ready_prs: cannot read PR list:", result.stderr)
+        self.assertNotIn("would run", result.stdout)
+        self.assertNotIn("nothing to do", result.stdout)
+
+    @unittest.skipIf(has_timeout_command(), "a timeout command is installed")
+    def test_refuses_real_run_without_timeout(self):
+        result = self.run_night()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("qa-night: no timeout command found (brew install coreutils for gtimeout); "
+                      "set QA_NIGHT_ALLOW_NO_TIMEOUT=1 to run without a time limit", result.stderr)
+        self.assertNotIn("->", result.stdout)
+
+
+FAKE_CLAUDE = """#!/usr/bin/env bash
+set -e
+branch=$(git rev-parse --abbrev-ref HEAD)
+prompt=""
+while [ $# -gt 0 ]; do
+  case "$1" in -p) prompt="$2"; shift ;; esac
+  shift
+done
+printf '%s' "$prompt" > "$RECORD/$branch.prompt"
+echo "fake claude ran on $branch"
+echo night > night.txt
+git add night.txt
+git commit -q -m "night-shift run test"
+case "$branch" in push-*) git push -q origin "$branch" ;; esac
+"""
+
+
+class QaNightLaunchLoopTests(unittest.TestCase):
+    """Runs the real launch loop against a throwaway repository and bare origin."""
+
+    def git(self, *args, cwd=None):
+        return subprocess.run(["git", *args], cwd=cwd, env=self.env, capture_output=True,
+                              text=True, check=True).stdout
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        tmp = Path(self.tmp.name)
+        (tmp / "gitconfig").write_text("", encoding="utf-8")
+        self.env = dict(os.environ, GIT_CONFIG_GLOBAL=str(tmp / "gitconfig"), GIT_CONFIG_NOSYSTEM="1",
+                        GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.com",
+                        GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.com")
+        self.env.pop("QA_NIGHT_ALLOW_NO_TIMEOUT", None)
+        self.origin = tmp / "origin.git"
+        self.git("init", "-q", "--bare", "-b", "main", str(self.origin))
+        seed = tmp / "seed"
+        self.git("init", "-q", "-b", "main", str(seed))
+        (seed / "README").write_text("seed\n", encoding="utf-8")
+        self.git("add", "README", cwd=seed)
+        self.git("commit", "-q", "-m", "seed", cwd=seed)
+        self.git("remote", "add", "origin", str(self.origin), cwd=seed)
+        self.git("push", "-q", "origin", "main", cwd=seed)
+        for branch in ("push-21", "keep-22", "diverge-24"):
+            self.git("checkout", "-q", "-b", branch, "main", cwd=seed)
+            (seed / f"{branch}.txt").write_text(branch, encoding="utf-8")
+            self.git("add", f"{branch}.txt", cwd=seed)
+            self.git("commit", "-q", "-m", branch, cwd=seed)
+            self.git("push", "-q", "origin", branch, cwd=seed)
+        self.target = tmp / "target"
+        self.git("clone", "-q", str(self.origin), str(self.target))
+        (self.target / "ai-workflow").mkdir()
+        (self.target / "ai-workflow" / "project-context.md").write_text(
+            CONTEXT.format(mode="acceptEdits"), encoding="utf-8")
+        self.git("branch", "-q", "diverge-24", "origin/diverge-24", cwd=self.target)
+        self.git("worktree", "add", "-q", str(tmp / "local-24"), "diverge-24", cwd=self.target)
+        (tmp / "local-24" / "local.txt").write_text("local only", encoding="utf-8")
+        self.git("add", "local.txt", cwd=tmp / "local-24")
+        self.git("commit", "-q", "-m", "local only", cwd=tmp / "local-24")
+        self.git("worktree", "remove", str(tmp / "local-24"), cwd=self.target)
+
+        def branch_pr(number, branch):
+            return dict(pr(number, files=(f"{number}.yaml",)), headRefName=branch)
+
+        prs = [branch_pr(21, "push-21"), branch_pr(22, "keep-22"),
+               branch_pr(23, "feat&x"), branch_pr(24, "diverge-24")]
+        fixtures, gh = write_gh_fixtures(tmp, prs, human_labelled=(21, 22, 23, 24))
+        claude = tmp / "claude"
+        claude.write_text(FAKE_CLAUDE, encoding="utf-8")
+        claude.chmod(claude.stat().st_mode | stat.S_IEXEC)
+        self.record = tmp / "record"
+        self.record.mkdir()
+        self.home = tmp / "home"
+        self.env.update(QA_NIGHT_GH=str(gh), QA_NIGHT_CLAUDE=str(claude), QA_NIGHT_HOME=str(self.home),
+                        FIXTURES=str(fixtures), RECORD=str(self.record))
+        if not has_timeout_command():
+            self.env["QA_NIGHT_ALLOW_NO_TIMEOUT"] = "1"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_launch_loop(self):
+        result = subprocess.run([str(ROOT / "bin/qa-night"), str(self.target)], env=self.env,
+                                capture_output=True, text=True, check=False)
+        output = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 1, output)
+        runs = list((self.home / "runs").iterdir())
+        self.assertEqual(len(runs), 1, runs)
+        run_dir = runs[0]
+
+        # (a) committed and pushed: log written, worktree removed, commit on origin
+        self.assertIn("fake claude ran on push-21", (run_dir / "pr-21.log").read_text())
+        self.assertFalse((run_dir / "wt-21").exists(), output)
+        self.assertIn("#21 finished (exit 0), worktree removed", result.stdout)
+        self.assertIn("night-shift run test", self.git("log", "--format=%s", "push-21", cwd=self.origin))
+        prompt = (self.record / "push-21.prompt").read_text()
+        self.assertIn("pull request #21 (branch push-21)", prompt)
+        self.assertIn(f"{self.target}/ai-workflow/project-context.md", prompt)
+        self.assertNotIn("{{", prompt)
+
+        # (b) committed without pushing: worktree kept, non-zero exit
+        self.assertTrue((run_dir / "wt-22").is_dir(), output)
+        self.assertIn(f"#22 left unpushed work, worktree kept: {run_dir}/wt-22", result.stderr)
+
+        # unsafe branch name: skipped before any git call, the others still ran
+        self.assertIn("skip #23: unsafe branch name", result.stderr)
+        self.assertFalse((run_dir / "pr-23.log").exists())
+
+        # local branch diverging from origin: skipped, not reset
+        self.assertIn("skip #24: local branch diverges from origin", result.stderr)
+        self.assertFalse((run_dir / "wt-24").exists())
+        self.assertFalse((self.record / "diverge-24.prompt").exists())
+        self.assertIn("local only", self.git("log", "--format=%s", "diverge-24", cwd=self.target))
 
 
 if __name__ == "__main__":

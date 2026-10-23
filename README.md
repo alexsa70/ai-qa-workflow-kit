@@ -182,6 +182,8 @@ over draft pull requests a human labelled ready, one at a time, each in its own
 git worktree and a fresh headless session. Settings come from the target's
 `ai-workflow/project-context.md`, section "Coverage Pipeline". Start with
 `--dry-run`, then `--once <pr>` while tuning the prompt.
+A real run needs `timeout` or `gtimeout` (`brew install coreutils`) to bound
+each session; set `QA_NIGHT_ALLOW_NO_TIMEOUT=1` to run without a time limit.
 
 ## Design Documents
 

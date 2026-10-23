@@ -9,6 +9,11 @@
 # ${QA_NIGHT_HOME:-~/.qa-night}/runs/<run-id>/. Settings come from the
 # "Coverage Pipeline" section of <target>/ai-workflow/project-context.md.
 #
+# Fails closed: anything unexpected runs nothing for that PR (or the whole
+# run) with a reason on stderr, and a worktree with unpushed work is kept.
+# A real run needs `timeout` or `gtimeout` (brew install coreutils); set
+# QA_NIGHT_ALLOW_NO_TIMEOUT=1 to run without a time limit.
+#
 # Overrides (tests): QA_NIGHT_GH, QA_NIGHT_CLAUDE, QA_NIGHT_HOME.
 
 set -euo pipefail
@@ -26,7 +31,11 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --dry-run) DRY_RUN=1 ;;
-    --once) ONCE="${2:-}"; shift ;;
+    --once)
+      case "${2:-}" in
+        ''|*[!0-9]*) echo "qa-night: --once needs a PR number" >&2; exit 1 ;;
+      esac
+      ONCE="$2"; shift ;;
     *)
       if [ -z "$TARGET" ]; then TARGET="$1"
       else echo "qa-night: unexpected argument: $1" >&2; exit 1; fi ;;
@@ -67,24 +76,36 @@ if [ "$MODE" = "bypassPermissions" ]; then
   exit 1
 fi
 
+DEFAULT_BRANCH="$(cd "$TARGET" && "$GH" repo view --json defaultBranchRef \
+    --jq .defaultBranchRef.name </dev/null)" || DEFAULT_BRANCH=""
+if [ -z "$DEFAULT_BRANCH" ]; then
+  echo "qa-night: cannot determine the default branch of $TARGET; running nothing" >&2
+  exit 1
+fi
+
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_DIR="${QA_NIGHT_HOME:-$HOME/.qa-night}/runs/$RUN_ID"
 mkdir -p "$RUN_DIR/pr"
 
 ( cd "$TARGET" && "$GH" pr list --state open --limit 200 \
-    --json number,headRefName,isDraft,labels,files ) > "$RUN_DIR/prs.json"
+    --json number,headRefName,isDraft,isCrossRepository,labels,files </dev/null ) > "$RUN_DIR/prs.json"
 
+# PR numbers carrying the ready label; unreadable JSON yields none here and is
+# reported by the selector below.
 LABELLED="$(python3 -c '
 import json, sys
-prs = json.load(open(sys.argv[1]))
-print(" ".join(str(p["number"]) for p in prs if sys.argv[2] in {l["name"] for l in p.get("labels", [])}))
+try:
+    prs = json.load(open(sys.argv[1]))
+    print(" ".join(str(p["number"]) for p in prs if sys.argv[2] in {l["name"] for l in p.get("labels", [])}))
+except Exception:
+    pass
 ' "$RUN_DIR/prs.json" "$READY")"
 
 for n in $LABELLED; do
   if [ -n "$ONCE" ] && [ "$n" != "$ONCE" ]; then continue; fi
-  ( cd "$TARGET" && "$GH" api "repos/{owner}/{repo}/issues/$n/events" --paginate --jq '.[]' ) \
+  ( cd "$TARGET" && "$GH" api "repos/{owner}/{repo}/issues/$n/events" --paginate --jq '.[]' </dev/null ) \
     > "$RUN_DIR/pr/$n.events.json"
-  ( cd "$TARGET" && "$GH" api "repos/{owner}/{repo}/issues/$n/comments" --paginate --jq '.[]' ) \
+  ( cd "$TARGET" && "$GH" api "repos/{owner}/{repo}/issues/$n/comments" --paginate --jq '.[]' </dev/null ) \
     > "$RUN_DIR/pr/$n.comments.json"
 done
 
@@ -92,8 +113,36 @@ SELECT=(--prs "$RUN_DIR/prs.json" --events-dir "$RUN_DIR/pr"
         --label-ready "$READY" --label-done "$DONE" --label-blocked "$BLOCKED"
         --night-actor "$NIGHT_ACTOR")
 if [ -n "$ONCE" ]; then SELECT+=(--only "$ONCE"); fi
-SELECTED="$(python3 "$KIT_DIR/bin/lib/select_ready_prs.py" "${SELECT[@]}" 2> "$RUN_DIR/skipped.txt")"
+if SELECTED="$(python3 "$KIT_DIR/bin/lib/select_ready_prs.py" "${SELECT[@]}" 2> "$RUN_DIR/skipped.txt")"; then
+  SELECT_CODE=0
+else
+  SELECT_CODE=$?
+fi
 cat "$RUN_DIR/skipped.txt" >&2
+if [ "$SELECT_CODE" != 0 ]; then
+  echo "qa-night: PR selector failed (exit $SELECT_CODE); running nothing" >&2
+  exit "$SELECT_CODE"
+fi
+
+# Launcher-side checks on what the selector chose: never a fork, never the
+# default branch, only branch names that are safe to pass to git and templates.
+SELECTED="$(python3 -c '
+import json, re, sys
+prs = {str(p.get("number")): p for p in json.load(open(sys.argv[1]))}
+for line in sys.argv[3].splitlines():
+    n, _, branch = line.partition("\t")
+    p = prs.get(n, {})
+    if not re.fullmatch(r"[A-Za-z0-9._/-]+", branch) or branch.startswith("-"):
+        reason = "unsafe branch name"
+    elif p.get("isCrossRepository") is not False:
+        reason = "PR from a fork" if p.get("isCrossRepository") else "fork status unknown"
+    elif branch == sys.argv[2]:
+        reason = "head is the default branch"
+    else:
+        print(line)
+        continue
+    print("skip #%s: %s" % (n, reason), file=sys.stderr)
+' "$RUN_DIR/prs.json" "$DEFAULT_BRANCH" "$SELECTED")"
 
 if [ -z "$SELECTED" ]; then
   echo "qa-night: nothing to do (run $RUN_ID)"
@@ -108,37 +157,100 @@ fi
 
 if command -v timeout >/dev/null 2>&1; then TO=(timeout "${MINUTES}m")
 elif command -v gtimeout >/dev/null 2>&1; then TO=(gtimeout "${MINUTES}m")
-else TO=(); echo "qa-night: no timeout command found; running without a time limit" >&2; fi
+elif [ "${QA_NIGHT_ALLOW_NO_TIMEOUT:-}" = 1 ]; then
+  TO=()
+  echo "qa-night: no timeout command found; running without a time limit (QA_NIGHT_ALLOW_NO_TIMEOUT=1)" >&2
+else
+  echo "qa-night: no timeout command found (brew install coreutils for gtimeout); set QA_NIGHT_ALLOW_NO_TIMEOUT=1 to run without a time limit" >&2
+  exit 1
+fi
 
 PROMPT_TEMPLATE="$KIT_DIR/skills/night-shift/assets/night-prompt.md"
+
+# Literal, single-pass substitution of the {{NAME}} placeholders.
+render_prompt() {
+  python3 -c '
+import re, sys
+values = dict(arg.split("=", 1) for arg in sys.argv[2:])
+text = open(sys.argv[1], encoding="utf-8").read()
+sys.stdout.write(re.sub(r"\{\{(PR|BRANCH|RUN_ID|KIT_DIR|TARGET)\}\}", lambda m: values[m.group(1)], text))
+' "$PROMPT_TEMPLATE" "PR=$n" "BRANCH=$branch" "RUN_ID=$RUN_ID" "KIT_DIR=$KIT_DIR" "TARGET=$TARGET"
+}
+
+# git for the current PR, never reading the loop's stdin, output to its log.
+git_log() { git "$@" </dev/null >>"$LOG" 2>&1; }
+
+# Worktree on the PR branch. A local branch is reused only when origin
+# contains it (then fast-forwarded); otherwise the PR is skipped.
+prepare_worktree() {
+  CREATED=0
+  if ! git_log -C "$TARGET" fetch --quiet origin "$branch"; then
+    echo "qa-night: #$n fetch failed, see $LOG" >&2
+    return 1
+  fi
+  if git -C "$TARGET" show-ref --verify --quiet "refs/heads/$branch" </dev/null; then
+    if ! git_log -C "$TARGET" merge-base --is-ancestor "refs/heads/$branch" "refs/remotes/origin/$branch"; then
+      echo "skip #$n: local branch diverges from origin" >&2
+      return 1
+    fi
+    if ! git_log -C "$TARGET" worktree add "$WT" "$branch" \
+       || ! git_log -C "$WT" merge --ff-only --quiet "origin/$branch"; then
+      echo "qa-night: #$n worktree failed, see $LOG" >&2
+      return 1
+    fi
+  else
+    if ! git_log -C "$TARGET" worktree add -b "$branch" "$WT" "origin/$branch"; then
+      echo "qa-night: #$n worktree failed, see $LOG" >&2
+      return 1
+    fi
+    CREATED=1
+  fi
+}
+
+# Remove the worktree only when git proves it holds nothing unpushed.
+finish_worktree() {
+  git_log -C "$WT" fetch --quiet origin "$branch" || true
+  if DIRTY="$(git -C "$WT" status --porcelain </dev/null 2>>"$LOG")" \
+     && AHEAD="$(git -C "$WT" log --oneline "origin/$branch..HEAD" </dev/null 2>>"$LOG")"; then
+    if [ -n "$DIRTY" ] || [ -n "$AHEAD" ]; then
+      echo "qa-night: #$n left unpushed work, worktree kept: $WT" >&2
+      return 1
+    fi
+  else
+    echo "qa-night: #$n could not check for unpushed work, worktree kept: $WT" >&2
+    return 1
+  fi
+  if ! git_log -C "$TARGET" worktree remove "$WT"; then
+    echo "qa-night: #$n worktree remove failed, worktree kept: $WT" >&2
+    return 1
+  fi
+  if [ "$CREATED" = 1 ]; then git_log -C "$TARGET" branch -d "$branch" || true; fi
+  echo "qa-night: #$n finished (exit $CODE), worktree removed"
+}
+
 STATUS=0
 while IFS="$(printf '\t')" read -r n branch; do
   WT="$RUN_DIR/wt-$n"
   LOG="$RUN_DIR/pr-$n.log"
   echo "qa-night: #$n ($branch) -> $LOG"
-  if ! git -C "$TARGET" fetch --quiet origin "$branch" >>"$LOG" 2>&1 \
-     || ! git -C "$TARGET" worktree add -B "$branch" "$WT" "origin/$branch" >>"$LOG" 2>&1; then
-    echo "qa-night: #$n worktree failed, see $LOG" >&2
+  if ! prepare_worktree; then
     STATUS=1
     continue
   fi
-  PROMPT="$(sed -e "s|{{PR}}|$n|g" -e "s|{{BRANCH}}|$branch|g" -e "s|{{RUN_ID}}|$RUN_ID|g" \
-                -e "s|{{KIT_DIR}}|$KIT_DIR|g" -e "s|{{TARGET}}|$TARGET|g" "$PROMPT_TEMPLATE")"
+  if ! PROMPT="$(render_prompt 2>>"$LOG")"; then
+    echo "qa-night: #$n prompt rendering failed, see $LOG" >&2
+    CODE=1
+    finish_worktree || true
+    STATUS=1
+    continue
+  fi
   set +e
   ( cd "$WT" && ${TO[@]+"${TO[@]}"} "$CLAUDE" -p "$PROMPT" --add-dir "$KIT_DIR" \
       --permission-mode "$MODE" --allowedTools "$TOOLS" --max-turns "$TURNS" ) \
     </dev/null >>"$LOG" 2>&1
   CODE=$?
   set -e
-  git -C "$WT" fetch --quiet origin "$branch" >>"$LOG" 2>&1 || true
-  if [ -z "$(git -C "$WT" status --porcelain)" ] \
-     && [ -z "$(git -C "$WT" log --oneline "origin/$branch..HEAD" 2>/dev/null)" ]; then
-    git -C "$TARGET" worktree remove "$WT" >>"$LOG" 2>&1 || true
-    echo "qa-night: #$n finished (exit $CODE), worktree removed"
-  else
-    echo "qa-night: #$n left unpushed work, worktree kept: $WT" >&2
-    STATUS=1
-  fi
+  if ! finish_worktree; then STATUS=1; fi
   if [ "$CODE" != 0 ]; then STATUS=1; fi
 done <<< "$SELECTED"
 
