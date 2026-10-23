@@ -11,6 +11,10 @@
 #
 # Fails closed: anything unexpected runs nothing for that PR (or the whole
 # run) with a reason on stderr, and a worktree with unpushed work is kept.
+# The session always gets deny rules (merge, ready, review, close, raw API,
+# force-push, push to the default branch, edits to the kit) that override
+# night.allowed_tools. A session that exits non-zero without swapping the
+# ready label gets a "blocked: budget" report from the launcher.
 # A real run needs `timeout` or `gtimeout` (brew install coreutils); set
 # QA_NIGHT_ALLOW_NO_TIMEOUT=1 to run without a time limit.
 #
@@ -71,10 +75,27 @@ TURNS="$(cfg night.max_turns)"
 MINUTES="$(cfg night.timeout_minutes)"
 NIGHT_ACTOR="$(cfg_optional night.actor_login)"
 
-if [ "$MODE" = "bypassPermissions" ]; then
-  echo "qa-night: bypassPermissions is not allowed" >&2
+# Validate the settings before any gh call.
+case "$(printf '%s' "$MODE" | tr '[:upper:]' '[:lower:]')" in
+  bypasspermissions)
+    echo "qa-night: bypassPermissions is not allowed (night.permission_mode: $MODE)" >&2
+    exit 1 ;;
+esac
+case "$MODE" in
+  default|acceptEdits|plan|dontAsk) ;;
+  *) echo "qa-night: night.permission_mode must be one of default, acceptEdits, plan, dontAsk (got: $MODE)" >&2
+     exit 1 ;;
+esac
+positive_int() {
+  case "$2" in
+    ''|*[!0-9]*) ;;
+    *) if [ "$((10#$2))" -gt 0 ]; then return 0; fi ;;
+  esac
+  echo "qa-night: $1 must be a whole number greater than 0 (got: $2)" >&2
   exit 1
-fi
+}
+positive_int night.max_turns "$TURNS"
+positive_int night.timeout_minutes "$MINUTES"
 
 DEFAULT_BRANCH="$(cd "$TARGET" && "$GH" repo view --json defaultBranchRef \
     --jq .defaultBranchRef.name </dev/null)" || DEFAULT_BRANCH=""
@@ -167,6 +188,58 @@ fi
 
 PROMPT_TEMPLATE="$KIT_DIR/skills/night-shift/assets/night-prompt.md"
 
+# Deny rules for every session; they override any allow rule. Absolute-path
+# rules take a leading "//", so "/$KIT_DIR" (KIT_DIR starts with "/").
+build_deny_list() {
+  DENY=(
+    "Bash(gh pr merge:*)"
+    "Bash(gh pr ready:*)"
+    "Bash(gh pr review:*)"
+    "Bash(gh pr close:*)"
+    "Bash(gh api:*)"
+    "Bash(git push --force:*)"
+    "Bash(git push -f:*)"
+    "Bash(git push --force-with-lease:*)"
+    "Bash(git push origin HEAD:$DEFAULT_BRANCH)"
+    "Edit(/$KIT_DIR/**)"
+    "Write(/$KIT_DIR/**)"
+  )
+}
+
+# Allow rules: night.allowed_tools plus reading the project context, which
+# lives outside the worktree.
+build_allow_list() {
+  ALLOW=("$TOOLS" "Read(/$CONTEXT)")
+}
+
+build_deny_list
+build_allow_list
+
+# After a session that exited non-zero: if the PR still carries the ready
+# label, post a blocked/budget report and swap ready for blocked. gh failures
+# are reported and the run goes on.
+report_budget() {
+  local labels body
+  if ! labels="$(cd "$TARGET" && "$GH" pr view "$n" --json labels --jq '.labels[].name' </dev/null 2>>"$LOG")"; then
+    echo "qa-night: #$n could not read labels; budget report not posted" >&2
+    return 0
+  fi
+  if ! printf '%s\n' "$labels" | grep -Fqx -- "$READY"; then
+    return 0
+  fi
+  body="### Night shift - night-shift run $RUN_ID
+
+**Status:** blocked
+**Blocked on:** budget - session ended with exit $CODE before reporting; see log $LOG"
+  if ! ( cd "$TARGET" && "$GH" pr comment "$n" --body "$body" </dev/null >>"$LOG" 2>&1 ); then
+    echo "qa-night: #$n could not post the budget report, see $LOG" >&2
+    return 0
+  fi
+  if ! ( cd "$TARGET" && "$GH" pr edit "$n" --remove-label "$READY" --add-label "$BLOCKED" </dev/null >>"$LOG" 2>&1 ); then
+    echo "qa-night: #$n could not swap $READY for $BLOCKED, see $LOG" >&2
+  fi
+}
+
 # Literal, single-pass substitution of the {{NAME}} placeholders.
 render_prompt() {
   python3 -c '
@@ -246,10 +319,12 @@ while IFS="$(printf '\t')" read -r n branch; do
   fi
   set +e
   ( cd "$WT" && ${TO[@]+"${TO[@]}"} "$CLAUDE" -p "$PROMPT" --add-dir "$KIT_DIR" \
-      --permission-mode "$MODE" --allowedTools "$TOOLS" --max-turns "$TURNS" ) \
+      --permission-mode "$MODE" --allowedTools "${ALLOW[@]}" \
+      --disallowedTools "${DENY[@]}" --max-turns "$TURNS" ) \
     </dev/null >>"$LOG" 2>&1
   CODE=$?
   set -e
+  if [ "$CODE" != 0 ]; then report_budget; fi
   if ! finish_worktree; then STATUS=1; fi
   if [ "$CODE" != 0 ]; then STATUS=1; fi
 done <<< "$SELECTED"

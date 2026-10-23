@@ -195,7 +195,7 @@ class NightShiftContentTests(unittest.TestCase):
 LABELS = {"ready": "afk-ready", "done": "afk-done", "blocked": "afk-blocked"}
 
 
-def pr(number, labels=("afk-ready",), draft=True, files=("catalog/x.yaml",)):
+def pr(number, labels=("afk-ready",), draft=True, files=("cases/x.yaml",)):
     return {"number": number, "headRefName": f"branch-{number}", "isDraft": draft,
             "isCrossRepository": False,
             "labels": [{"name": name} for name in labels],
@@ -402,10 +402,20 @@ class SelectReadyPrsCliFailClosedTests(unittest.TestCase):
 
 FAKE_GH = """#!/usr/bin/env bash
 # Answers like the real gh: `api ... --jq '.[]'` prints one JSON object per line.
-case "$1" in
-  pr) cat "$FIXTURES/prs.json" ;;
-  repo) printf '%s\\n' "${FAKE_DEFAULT_BRANCH-main}" ;;
-  api)
+# Every call is recorded as one JSON array per line in $FIXTURES/gh-calls.jsonl.
+python3 -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "$@" >> "$FIXTURES/gh-calls.jsonl"
+case "$1 $2" in
+  "pr list") cat "$FIXTURES/prs.json" ;;
+  "pr view")
+    # `pr view <n> --json labels --jq '.labels[].name'`: one label name per line;
+    # $FIXTURES/<n>.labels (written by a fake session) overrides prs.json.
+    if [ -f "$FIXTURES/$3.labels" ]; then cat "$FIXTURES/$3.labels"
+    else
+      python3 -c 'import json, sys; [print(l["name"]) for p in json.load(open(sys.argv[1])) if str(p["number"]) == sys.argv[2] for l in p["labels"]]' "$FIXTURES/prs.json" "$3"
+    fi ;;
+  "pr comment"|"pr edit") [ -z "${FAKE_GH_FAIL_WRITES:-}" ] || exit 1 ;;
+  "repo view") printf '%s\\n' "${FAKE_DEFAULT_BRANCH-main}" ;;
+  api\ *)
     n=$(printf '%s' "$2" | sed -E 's#.*/issues/([0-9]+)/.*#\\1#')
     case "$2" in
       */events) f="$FIXTURES/$n.events.json" ;;
@@ -428,10 +438,21 @@ CONTEXT = """# Project Context
 - labels.blocked: afk-blocked
 - night.permission_mode: {mode}
 - night.allowed_tools: Read,Edit
-- night.max_turns: 5
-- night.timeout_minutes: 1
+- night.max_turns: {turns}
+- night.timeout_minutes: {timeout}
 - night.actor_login:
 """
+
+
+def context(mode="acceptEdits", turns="5", timeout="1"):
+    return CONTEXT.format(mode=mode, turns=turns, timeout=timeout)
+
+
+def gh_calls(fixtures):
+    path = Path(fixtures) / "gh-calls.jsonl"
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
 
 def has_timeout_command():
@@ -452,14 +473,16 @@ def write_gh_fixtures(tmp, prs, human_labelled):
 
 
 class QaNightTests(unittest.TestCase):
-    def run_night(self, *args, mode="acceptEdits", prs=None, extra_env=None):
+    def run_night(self, *args, mode="acceptEdits", turns="5", timeout="1", prs=None, extra_env=None):
         tmp = Path(self.tmp.name)
         target = tmp / "target"
         (target / "ai-workflow").mkdir(parents=True, exist_ok=True)
-        (target / "ai-workflow" / "project-context.md").write_text(CONTEXT.format(mode=mode), encoding="utf-8")
+        (target / "ai-workflow" / "project-context.md").write_text(
+            context(mode=mode, turns=turns, timeout=timeout), encoding="utf-8")
         if prs is None:
             prs = [pr(12), pr(13, files=("b.yaml",))]
         fixtures, gh = write_gh_fixtures(tmp, prs, human_labelled=(12, 14, 15, 16))
+        self.fixtures = fixtures
         (fixtures / "13.events.json").write_text(json.dumps([labeled("ci[bot]", "2026-10-23T10:00:00Z", actor_type="Bot")]), encoding="utf-8")
         env = dict(os.environ, QA_NIGHT_GH=str(gh), QA_NIGHT_HOME=str(tmp / "home"),
                    QA_NIGHT_CLAUDE="false", FIXTURES=str(fixtures))
@@ -518,6 +541,39 @@ class QaNightTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("bypassPermissions is not allowed", result.stderr)
 
+    def assert_rejected_before_gh(self, result, message):
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(message, result.stderr)
+        self.assertNotIn("would run", result.stdout)
+        self.assertEqual(gh_calls(self.fixtures), [])
+
+    def test_refuses_bypass_permissions_in_any_casing(self):
+        for mode in ("bypassPermissions", "BypassPermissions", "bypasspermissions", "BYPASSPERMISSIONS"):
+            with self.subTest(mode=mode):
+                result = self.run_night("--dry-run", mode=mode)
+                self.assert_rejected_before_gh(result, "bypassPermissions is not allowed")
+
+    def test_rejects_unknown_permission_mode(self):
+        for mode in ("auto", "AcceptEdits"):
+            with self.subTest(mode=mode):
+                result = self.run_night("--dry-run", mode=mode)
+                self.assert_rejected_before_gh(
+                    result, "qa-night: night.permission_mode must be one of default, acceptEdits, plan, dontAsk")
+
+    def test_rejects_non_numeric_timeout(self):
+        for timeout in ("10m", "abc", "-5", "1.5", "0"):
+            with self.subTest(timeout=timeout):
+                result = self.run_night("--dry-run", timeout=timeout)
+                self.assert_rejected_before_gh(
+                    result, "qa-night: night.timeout_minutes must be a whole number greater than 0")
+
+    def test_rejects_zero_or_non_numeric_max_turns(self):
+        for turns in ("0", "00", "many"):
+            with self.subTest(turns=turns):
+                result = self.run_night("--dry-run", turns=turns)
+                self.assert_rejected_before_gh(
+                    result, "qa-night: night.max_turns must be a whole number greater than 0")
+
     def test_dry_run_skips_fork_default_branch_and_unsafe_branch(self):
         fork = dict(pr(14, files=("c.yaml",)), isCrossRepository=True)
         default = dict(pr(15, files=("d.yaml",)), headRefName="main")
@@ -556,6 +612,8 @@ class QaNightTests(unittest.TestCase):
 FAKE_CLAUDE = """#!/usr/bin/env bash
 set -e
 branch=$(git rev-parse --abbrev-ref HEAD)
+# argv, NUL-separated, for the permission assertions
+printf '%s\\0' "$@" > "$RECORD/$branch.argv"
 prompt=""
 while [ $# -gt 0 ]; do
   case "$1" in -p) prompt="$2"; shift ;; esac
@@ -567,6 +625,11 @@ echo night > night.txt
 git add night.txt
 git commit -q -m "night-shift run test"
 case "$branch" in push-*) git push -q origin "$branch" ;; esac
+# FAKE_CLAUDE_SWAP_LABELS: the session itself swapped ready for blocked.
+if [ -n "${FAKE_CLAUDE_SWAP_LABELS:-}" ]; then
+  printf 'afk-blocked\\n' > "$FIXTURES/${branch##*-}.labels"
+fi
+exit "${FAKE_CLAUDE_EXIT:-0}"
 """
 
 
@@ -604,7 +667,7 @@ class QaNightLaunchLoopTests(unittest.TestCase):
         self.git("clone", "-q", str(self.origin), str(self.target))
         (self.target / "ai-workflow").mkdir()
         (self.target / "ai-workflow" / "project-context.md").write_text(
-            CONTEXT.format(mode="acceptEdits"), encoding="utf-8")
+            context(), encoding="utf-8")
         self.git("branch", "-q", "diverge-24", "origin/diverge-24", cwd=self.target)
         self.git("worktree", "add", "-q", str(tmp / "local-24"), "diverge-24", cwd=self.target)
         (tmp / "local-24" / "local.txt").write_text("local only", encoding="utf-8")
@@ -618,6 +681,7 @@ class QaNightLaunchLoopTests(unittest.TestCase):
         prs = [branch_pr(21, "push-21"), branch_pr(22, "keep-22"),
                branch_pr(23, "feat&x"), branch_pr(24, "diverge-24")]
         fixtures, gh = write_gh_fixtures(tmp, prs, human_labelled=(21, 22, 23, 24))
+        self.fixtures = fixtures
         claude = tmp / "claude"
         claude.write_text(FAKE_CLAUDE, encoding="utf-8")
         claude.chmod(claude.stat().st_mode | stat.S_IEXEC)
@@ -664,6 +728,77 @@ class QaNightLaunchLoopTests(unittest.TestCase):
         self.assertFalse((run_dir / "wt-24").exists())
         self.assertFalse((self.record / "diverge-24.prompt").exists())
         self.assertIn("local only", self.git("log", "--format=%s", "diverge-24", cwd=self.target))
+
+
+    def run_once(self, number, **extra_env):
+        env = dict(self.env, **extra_env)
+        result = subprocess.run([str(ROOT / "bin/qa-night"), str(self.target), "--once", str(number)],
+                                env=env, capture_output=True, text=True, check=False)
+        runs = list((self.home / "runs").iterdir())
+        self.assertEqual(len(runs), 1, runs)
+        return result, runs[0]
+
+    def option_values(self, argv, option):
+        start = argv.index(option) + 1
+        end = start
+        while end < len(argv) and not argv[end].startswith("--"):
+            end += 1
+        return argv[start:end]
+
+    def write_calls(self):
+        return [call for call in gh_calls(self.fixtures) if call[:2] in (["pr", "comment"], ["pr", "edit"])]
+
+    def test_session_gets_deny_rules_and_context_read_rule(self):
+        result, _ = self.run_once(21)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        argv = (self.record / "push-21.argv").read_text().split("\0")[:-1]
+        deny = self.option_values(argv, "--disallowedTools")
+        kit = str(ROOT)
+        for rule in ("Bash(gh pr merge:*)", "Bash(gh pr ready:*)", "Bash(gh pr review:*)",
+                     "Bash(gh pr close:*)", "Bash(gh api:*)", "Bash(git push --force:*)",
+                     "Bash(git push -f:*)", "Bash(git push --force-with-lease:*)",
+                     "Bash(git push origin HEAD:main)", f"Edit(/{kit}/**)", f"Write(/{kit}/**)"):
+            self.assertIn(rule, deny, rule)
+        self.assertTrue(f"Edit(/{kit}/**)".startswith("Edit(//"))
+        allow = self.option_values(argv, "--allowedTools")
+        self.assertIn("Read,Edit", allow)
+        self.assertIn(f"Read(/{self.target}/ai-workflow/project-context.md)", allow)
+        self.assertEqual(self.option_values(argv, "--add-dir"), [kit])
+        self.assertEqual(self.write_calls(), [])
+
+    def test_failed_session_is_reported_as_budget_and_blocked(self):
+        result, run_dir = self.run_once(21, FAKE_CLAUDE_EXIT="124")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        calls = gh_calls(self.fixtures)
+        self.assertIn(["pr", "view", "21", "--json", "labels", "--jq", ".labels[].name"], calls)
+        comments = [call for call in calls if call[:3] == ["pr", "comment", "21"]]
+        self.assertEqual(len(comments), 1, calls)
+        body = comments[0][comments[0].index("--body") + 1]
+        self.assertTrue(body.startswith(f"### Night shift - night-shift run {run_dir.name}"), body)
+        self.assertIn("**Status:** blocked", body)
+        self.assertIn("**Blocked on:** budget - session ended with exit 124 before reporting; "
+                      f"see log {run_dir}/pr-21.log", body)
+        self.assertIn(["pr", "edit", "21", "--remove-label", "afk-ready", "--add-label", "afk-blocked"], calls)
+        self.assertLess(calls.index(comments[0]),
+                        calls.index(["pr", "edit", "21", "--remove-label", "afk-ready", "--add-label", "afk-blocked"]))
+
+    def test_failed_session_that_swapped_labels_itself_issues_nothing(self):
+        result, _ = self.run_once(21, FAKE_CLAUDE_EXIT="3", FAKE_CLAUDE_SWAP_LABELS="1")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(["pr", "view", "21", "--json", "labels", "--jq", ".labels[].name"], gh_calls(self.fixtures))
+        self.assertEqual(self.write_calls(), [])
+
+    def test_successful_session_that_swapped_labels_issues_nothing(self):
+        result, _ = self.run_once(21, FAKE_CLAUDE_SWAP_LABELS="1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual([c for c in gh_calls(self.fixtures) if c[:2] == ["pr", "view"]], [])
+        self.assertEqual(self.write_calls(), [])
+
+    def test_failed_budget_report_is_logged_and_run_continues(self):
+        result, _ = self.run_once(21, FAKE_CLAUDE_EXIT="124", FAKE_GH_FAIL_WRITES="1")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("qa-night: #21 could not post the budget report", result.stderr)
+        self.assertIn("#21 finished (exit 124), worktree removed", result.stdout)
 
 
 if __name__ == "__main__":
