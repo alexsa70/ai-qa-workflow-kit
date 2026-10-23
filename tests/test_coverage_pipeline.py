@@ -191,5 +191,98 @@ class NightShiftContentTests(unittest.TestCase):
             self.assertIn(phrase, text, phrase)
 
 
+LABELS = {"ready": "afk-ready", "done": "afk-done", "blocked": "afk-blocked"}
+
+
+def pr(number, labels=("afk-ready",), draft=True, files=("catalog/x.yaml",)):
+    return {"number": number, "headRefName": f"branch-{number}", "isDraft": draft,
+            "labels": [{"name": name} for name in labels],
+            "files": [{"path": path} for path in files]}
+
+
+def labeled(login, at, label="afk-ready", kind="labeled", actor_type="User"):
+    return {"event": kind, "created_at": at, "label": {"name": label},
+            "actor": {"login": login, "type": actor_type}}
+
+
+class SelectReadyPrsTests(unittest.TestCase):
+    def setUp(self):
+        self.mod = load_module("bin/lib/select_ready_prs.py", "select_ready_prs")
+
+    def classify(self, item, events, comments=(), others=(), night_actor=""):
+        return self.mod.classify(item, list(events), list(comments), list(others),
+                                 LABELS, r"\[bot\]$", night_actor)
+
+    def test_human_label_is_eligible(self):
+        self.assertEqual(self.classify(pr(1), [labeled("alex", "2026-10-23T10:00:00Z")]),
+                         ("eligible", ""))
+
+    def test_bot_label_is_skipped(self):
+        status, reason = self.classify(pr(1), [labeled("ci[bot]", "2026-10-23T10:00:00Z", actor_type="Bot")])
+        self.assertEqual(status, "skipped")
+        self.assertIn("ci[bot]", reason)
+
+    def test_night_actor_label_is_skipped(self):
+        status, _ = self.classify(pr(1), [labeled("night", "2026-10-23T10:00:00Z")], night_actor="night")
+        self.assertEqual(status, "skipped")
+
+    def test_unlabeled_after_labeled_is_skipped(self):
+        events = [labeled("alex", "2026-10-23T10:00:00Z"),
+                  labeled("alex", "2026-10-23T11:00:00Z", kind="unlabeled")]
+        self.assertEqual(self.classify(pr(1), events)[0], "skipped")
+
+    def test_not_draft_and_done_and_blocked_are_skipped(self):
+        event = [labeled("alex", "2026-10-23T10:00:00Z")]
+        self.assertEqual(self.classify(pr(1, draft=False), event)[0], "skipped")
+        self.assertEqual(self.classify(pr(1, labels=("afk-ready", "afk-done")), event)[0], "skipped")
+        self.assertEqual(self.classify(pr(1, labels=("afk-ready", "afk-blocked")), event)[0], "skipped")
+
+    def test_report_newer_than_label_is_skipped_older_is_not(self):
+        event = [labeled("alex", "2026-10-23T10:00:00Z")]
+        newer = [{"body": "### Night shift - night-shift run 1", "created_at": "2026-10-23T12:00:00Z"}]
+        older = [{"body": "### Night shift - night-shift run 0", "created_at": "2026-10-22T12:00:00Z"}]
+        self.assertEqual(self.classify(pr(1), event, newer)[0], "skipped")
+        self.assertEqual(self.classify(pr(1), event, older)[0], "eligible")
+
+    def test_file_shared_with_other_open_pr_is_skipped(self):
+        event = [labeled("alex", "2026-10-23T10:00:00Z")]
+        other = pr(2, labels=(), files=("framework/drivers/files.py",))
+        status, reason = self.classify(pr(1, files=("framework/drivers/files.py",)), event, others=[other])
+        self.assertEqual(status, "skipped")
+        self.assertIn("framework/drivers/files.py", reason)
+
+    def test_load_json_items_reads_array_and_lines(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            array = Path(tmp) / "a.json"
+            lines = Path(tmp) / "b.json"
+            array.write_text('[{"x": 1}, {"x": 2}]', encoding="utf-8")
+            lines.write_text('{"x": 1}\n{"x": 2}\n', encoding="utf-8")
+            self.assertEqual(self.mod.load_json_items(array), [{"x": 1}, {"x": 2}])
+            self.assertEqual(self.mod.load_json_items(lines), [{"x": 1}, {"x": 2}])
+            self.assertEqual(self.mod.load_json_items(Path(tmp) / "missing.json"), [])
+
+    def test_cli_prints_eligible_and_reports_skips(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / "prs.json").write_text(json.dumps([pr(12), pr(13, files=("b.yaml",))]), encoding="utf-8")
+            (tmp / "12.events.json").write_text(json.dumps([labeled("alex", "2026-10-23T10:00:00Z")]), encoding="utf-8")
+            (tmp / "13.events.json").write_text(json.dumps([labeled("ci[bot]", "2026-10-23T10:00:00Z", actor_type="Bot")]), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "bin/lib/select_ready_prs.py"), "--prs", str(tmp / "prs.json"),
+                 "--events-dir", str(tmp), "--label-ready", "afk-ready", "--label-done", "afk-done",
+                 "--label-blocked", "afk-blocked"],
+                capture_output=True, text=True, check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "12\tbranch-12")
+        self.assertIn("skip #13:", result.stderr)
+
+    def test_cli_help(self):
+        result = subprocess.run([sys.executable, str(ROOT / "bin/lib/select_ready_prs.py"), "--help"],
+                                capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("usage:", result.stdout.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
