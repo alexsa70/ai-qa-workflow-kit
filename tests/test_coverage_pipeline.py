@@ -109,7 +109,7 @@ class ProjectAgnosticTests(unittest.TestCase):
                     self.assertNotIn(term, text, f"{path.relative_to(ROOT)} names '{term}'")
 
 
-PIPELINE_SKILLS = ["coverage-backlog", "requirement-grill"]
+PIPELINE_SKILLS = ["coverage-backlog", "requirement-grill", "blackbox-review"]
 
 
 class PipelineSkillTests(unittest.TestCase):
@@ -136,6 +136,45 @@ class PipelineSkillTests(unittest.TestCase):
         for heading in ("## Units", "## Three questions", "## Cases", "## Not claimed",
                         "## Rejected options", "## Open questions", "## Sources read"):
             self.assertIn(heading, text, heading)
+
+
+HEURISTIC_FIELDS = ["Applies when", "Try", "User expects", "Typical failure", "Technique", "Source"]
+TECHNIQUES = {"boundary", "equivalence", "state", "decision-table", "error-guessing", "journey",
+              "concurrency", "interruption", "data", "roles", "recovery"}
+
+
+def heuristic_entries(text):
+    # The format example inside a code fence ("### H-<AREA>-<NN> ...") is not an entry.
+    blocks = re.split(r"^### ", text, flags=re.MULTILINE)[1:]
+    return [block for block in blocks if re.match(r"H-[A-Z]+-\d{2} ", block)]
+
+
+class HeuristicsFormatTests(unittest.TestCase):
+    def check_file(self, relative, minimum):
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        entries = heuristic_entries(text)
+        self.assertGreaterEqual(len(entries), minimum, relative)
+        ids = set()
+        for entry in entries:
+            entry_id = entry.split(" ", 1)[0]
+            self.assertRegex(entry_id, r"^H-[A-Z]+-\d{2}$", entry_id)
+            self.assertNotIn(entry_id, ids, entry_id)
+            ids.add(entry_id)
+            for field in HEURISTIC_FIELDS:
+                self.assertIn(f"- **{field}:**", entry, f"{entry_id} lacks {field}")
+            technique = re.search(r"- \*\*Technique:\*\* (\S+)", entry).group(1)
+            self.assertIn(technique, TECHNIQUES, entry_id)
+
+    def test_kit_heuristics(self):
+        self.check_file("skills/blackbox-review/references/heuristics.md", 7)
+
+    def test_project_heuristics_template(self):
+        self.check_file("templates/project-heuristics.md", 1)
+
+    def test_findings_template_names_every_category(self):
+        text = (ROOT / "skills/blackbox-review/assets/findings.md").read_text(encoding="utf-8")
+        for category in ("variant", "new-case-in-inventory", "outside-inventory", "question"):
+            self.assertIn(category, text, category)
 
 
 if __name__ == "__main__":

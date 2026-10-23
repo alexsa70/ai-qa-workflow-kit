@@ -109,13 +109,22 @@ ai-qa-workflow-kit/
 │   │   └── agents/
 │   │       ├── openai.yaml
 │   │       └── claude.yaml
-│   └── requirement-grill/
+│   ├── requirement-grill/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── openai.yaml
+│   │   │   └── claude.yaml
+│   │   └── assets/
+│   │       └── grill-brief.md
+│   └── blackbox-review/
 │       ├── SKILL.md
 │       ├── agents/
 │       │   ├── openai.yaml
 │       │   └── claude.yaml
-│       └── assets/
-│           └── grill-brief.md
+│       ├── assets/
+│       │   └── findings.md
+│       └── references/
+│           └── heuristics.md
 ├── docs/
 │   ├── architecture.md
 │   ├── component-inventory.md
@@ -123,6 +132,7 @@ ai-qa-workflow-kit/
 │   └── test-implementation.md
 └── templates/
     ├── project-context.md
+    ├── project-heuristics.md
     └── test-design-contract.md
 ```
 

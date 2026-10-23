@@ -1,0 +1,4 @@
+interface:
+  display_name: "Black-Box Review"
+  short_description: "Propose user-side test additions without reading code"
+  default_prompt: "Use the blackbox-review skill to review these cases from the user's side and propose variants, new cases, outside-inventory cases and product questions."

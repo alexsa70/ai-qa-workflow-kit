@@ -276,6 +276,17 @@ produces a grill brief for the project's authoring skill. It writes no
 scenario, test or approval and routes every factual conflict through
 `source-of-truth`.
 
+Use `blackbox-review` when:
+
+- a grill brief or draft scenario should be checked from the user's side
+  before it is claimed;
+- finished scenarios of a domain should be audited for user-side gaps;
+- coverage derived from code may miss what users actually do.
+
+`blackbox-review` never reads product source code and never writes tests,
+scenarios or approvals. Its `outside-inventory` findings go to
+`coverage-backlog`; its `question` findings go to `source-of-truth`.
+
 ## Agent Routing
 
 Beyond the skills above, the kit ships one specialist agent.
