@@ -265,6 +265,17 @@ Use `coverage-backlog` when:
 coverage command and open pull requests on every run and never stores it,
 claims a unit or opens a pull request.
 
+Use `requirement-grill` when:
+
+- a requirement-inventory unit is about to be claimed for a new scenario;
+- a unit's expected behaviour, variants, cleanup or scope is unclear;
+- a requirement page or meeting transcript must become agreed cases.
+
+`requirement-grill` asks one question at a time with a recommendation and
+produces a grill brief for the project's authoring skill. It writes no
+scenario, test or approval and routes every factual conflict through
+`source-of-truth`.
+
 ## Agent Routing
 
 Beyond the skills above, the kit ships one specialist agent.

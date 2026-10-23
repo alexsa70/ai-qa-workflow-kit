@@ -109,7 +109,7 @@ class ProjectAgnosticTests(unittest.TestCase):
                     self.assertNotIn(term, text, f"{path.relative_to(ROOT)} names '{term}'")
 
 
-PIPELINE_SKILLS = ["coverage-backlog"]
+PIPELINE_SKILLS = ["coverage-backlog", "requirement-grill"]
 
 
 class PipelineSkillTests(unittest.TestCase):
@@ -130,6 +130,12 @@ class PipelineSkillTests(unittest.TestCase):
         for relative in ("bin/qa-kit", "docs/kit-only-mode.md"):
             text = (ROOT / relative).read_text(encoding="utf-8")
             self.assertIn("authoring.skill", text, relative)
+
+    def test_grill_brief_has_required_sections(self):
+        text = (ROOT / "skills/requirement-grill/assets/grill-brief.md").read_text(encoding="utf-8")
+        for heading in ("## Units", "## Three questions", "## Cases", "## Not claimed",
+                        "## Rejected options", "## Open questions", "## Sources read"):
+            self.assertIn(heading, text, heading)
 
 
 if __name__ == "__main__":

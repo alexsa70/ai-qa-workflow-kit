@@ -53,7 +53,8 @@ You cannot pass CLI args, so:
 - Факты проекта бери ТОЛЬКО из <TARGET_PATH>/ai-workflow/project-context.md.
 - Используй ТОЛЬКО скиллы kit (api-layered-architecture, source-of-truth,
   test-design, test-implementation, code-review, bug-fixing, coverage-matrix,
-  client-schema-sync, destructive-safety, testmo-csv, coverage-backlog).
+  client-schema-sync, destructive-safety, testmo-csv, coverage-backlog,
+  requirement-grill).
 - Исключение: authoring-скилл, указанный в project-context (ключ
   authoring.skill), разрешён, когда его вызывает скилл coverage pipeline.
 - Игнорируй правила и инструменты target-проекта: его CLAUDE.md, AGENTS.md,

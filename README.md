@@ -104,11 +104,18 @@ ai-qa-workflow-kit/
 │   │   │   └── claude.yaml
 │   │   └── assets/
 │   │       └── seeded-ids.template.json
-│   └── coverage-backlog/
+│   ├── coverage-backlog/
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       ├── openai.yaml
+│   │       └── claude.yaml
+│   └── requirement-grill/
 │       ├── SKILL.md
-│       └── agents/
-│           ├── openai.yaml
-│           └── claude.yaml
+│       ├── agents/
+│       │   ├── openai.yaml
+│       │   └── claude.yaml
+│       └── assets/
+│           └── grill-brief.md
 ├── docs/
 │   ├── architecture.md
 │   ├── component-inventory.md
