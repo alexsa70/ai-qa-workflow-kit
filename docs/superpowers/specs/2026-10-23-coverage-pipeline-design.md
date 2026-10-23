@@ -170,8 +170,10 @@ qa-night <target-path> --dry-run    # list what would run, start nothing
 ```
 
 Per PR: the selector (bin/lib/select_ready_prs.py) skips it unless the last ready-label event is from neither a bot nor night.actor_login, it has no done/blocked label, no "night-shift run " comment is newer than that event, and no other open PR changes the same files → `git worktree add` on the PR branch → `claude -p` with the night-shift prompt,
-`--permission-mode` and `--allowedTools` from project context, `--max-turns` and a
-timeout → log to a run directory → remove the worktree only after a successful push; on
+`--permission-mode` and `--allowedTools` from project context plus an absolute
+`Read(//<path>/ai-workflow/project-context.md)` rule, `--disallowedTools` deny rules that
+always win (merge, ready, review, close, `gh api`, force-push, push to the default branch,
+Edit/Write on the kit), `--max-turns` and a timeout → log to a run directory → remove the worktree only after a successful push; on
 failure keep it and name it in the log. A rerun resumes: the label is still present and
 earlier commits are on the branch.
 
@@ -340,9 +342,9 @@ Two files share one entry format.
 | Requirement silent on a black-box finding | `question` finding, never a test |
 | Ready label from a bot or night.actor_login, a done/blocked label, or a report newer than the label | PR skipped; the night shift itself never adds the ready label |
 | Preflight fails | `blocked: environment`; no "not verified but green" |
-| Denylist missing | no live run; safe checks only; PR labelled blocked |
-| Budget exceeded | `blocked: budget`; partial work stays committed on the branch |
-| Script crashes mid-PR | worktree kept and logged; rerun resumes |
+| Denylist missing | precondition stop: nothing edited, committed or pushed; PR labelled blocked |
+| Budget exceeded (session exits non-zero) | `bin/qa-night` posts the `blocked` report with reason `budget` and swaps the labels, unless the session already did; partial work stays committed on the branch |
+| Script crashes mid-PR | worktree kept and logged; the kept worktree blocks that PR on later runs until a human pushes or discards its work and removes the worktree |
 
 Night-shift permissions: never `bypassPermissions` by default; forbidden actions are
 merge, marking ready, recording approval, force-push and pushing to the default branch.

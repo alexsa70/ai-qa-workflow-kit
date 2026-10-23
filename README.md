@@ -16,9 +16,13 @@ This version contains the reusable QA Orchestrator, the `qa-review-gate`
 specialist agent, and the `api-layered-architecture`, `source-of-truth`,
 `test-design`, `test-implementation`, `code-review`, `bug-fixing`,
 `coverage-matrix`, `client-schema-sync`, `testmo-csv`, and `destructive-safety`
-skills. It also ships opt-in Claude Code hooks under `hooks/`. The approved
-Test Design Contract remains the durable artifact across architecture mapping,
-design, implementation, verification, review, and repair.
+skills, plus the four coverage pipeline skills `coverage-backlog`,
+`requirement-grill`, `blackbox-review` and `night-shift`. It also ships opt-in
+Claude Code hooks under `hooks/`, the `bin/qa-kit` and `bin/qa-night`
+launchers, and the `templates/project-heuristics.md` template for project
+black-box heuristics. The approved Test Design Contract remains the durable
+artifact across architecture mapping, design, implementation, verification,
+review, and repair.
 
 ```text
 ai-qa-workflow-kit/
@@ -31,6 +35,12 @@ ai-qa-workflow-kit/
 ├── agents/
 │   ├── qa-orchestrator.md
 │   └── qa-review-gate.md         # adversarial PASS|EDIT|FAIL gate
+├── bin/
+│   ├── qa-kit                    # client governed by the kit only
+│   ├── qa-night                  # night shift launcher
+│   └── lib/
+│       ├── pipeline_config.py
+│       └── select_ready_prs.py
 ├── hooks/                        # opt-in Claude Code PreToolUse hooks
 │   ├── README.md                 # wiring + configuration
 │   ├── pre-commit-branch-guard.sh
@@ -184,6 +194,20 @@ git worktree and a fresh headless session. Settings come from the target's
 `--dry-run`, then `--once <pr>` while tuning the prompt.
 A real run needs `timeout` or `gtimeout` (`brew install coreutils`) to bound
 each session; set `QA_NIGHT_ALLOW_NO_TIMEOUT=1` to run without a time limit.
+
+Every session gets `--disallowedTools` deny rules that win over
+`night.allowed_tools`: `gh pr merge`, `gh pr ready`, `gh pr review`,
+`gh pr close`, `gh api`, force-pushes, `git push origin HEAD:<default branch>`
+and edits to the kit directory (`--add-dir` keeps the kit readable). The
+project context file is allowed by an absolute `Read` rule. The project's
+`.claude/settings.json` on the pull request's branch also applies to the
+session, so a branch can widen what is allowed; branch protection on the
+default branch is the real backstop. When a session exits non-zero (timeout,
+turn limit, crash) and the pull request still carries the ready label, the
+launcher comments a `blocked` report with reason `budget` and swaps the
+labels. If the launcher itself crashes mid-PR, the kept worktree blocks that
+pull request on later runs until a human pushes or discards its work and
+removes the worktree (`git worktree remove`).
 
 ## Design Documents
 
