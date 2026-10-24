@@ -30,18 +30,23 @@ authoring skill named in `authoring.skill`).
 - the cases: a grill brief, or scenario files and their test classes;
 - heuristics: `references/heuristics.md` in this skill, and the file named by
   `heuristics.project_file` when the key is set. If the key is set and the
-  file is missing, say so and continue with the kit file only.
+  file is missing, say so and continue with the kit file only. Its
+  "Rejected findings" section lists findings the user already turned down.
 
 Out of bounds: product source code, configuration, inventory `src` citations,
 code comments. Requirement and design documents count as requirements even
-when they live in the backend repository. Test code is read only for what it
+when they live in the backend repository; read them for intended behaviour
+and skip implementation detail in them (data schemas, implementation sequence
+diagrams) as you skip code notes. Test code is read only for what it
 asserts, not for how the product works. Scenario files may carry provenance,
 code citations or defect notes that point at code: skip those fields, and if
 they were seen, mark the affected findings "may be influenced by code notes".
 
 If the requirement is unavailable, use the scenario's own stated outcome and
 preconditions as a stand-in, say so in the report header, and mark findings
-that depend on it.
+that depend on it. If the inventory is unavailable, classify every new case as
+`outside-inventory`, say so in the report header, and note that the
+classification needs a recheck.
 
 ## Procedure
 
@@ -54,7 +59,9 @@ that depend on it.
    across features; interruption and recovery; retry and idempotency;
    concurrency between two actors or two sessions; data variety (languages,
    right-to-left text, sizes, empty, special characters); roles as the user
-   experiences them.
+   experiences them. In audit mode over many scenarios, start with the
+   journeys of highest user risk and stop adding low-risk findings once each
+   scenario has its sharpest ones; list in the report what was not examined.
 3. **Apply heuristics.** For each heuristic whose "Applies when" matches, try
    its probe against the cases. Cite the heuristic id on every finding it
    produced: kit ids bare (`H-PERM-02`), project ids with a `P:` prefix
@@ -77,7 +84,9 @@ that depend on it.
    For back-end or API scenarios the "user" is the API client or the person
    using the product through it; "user would notice" means what that client
    observes in responses, later reads or search results.
-6. **Report** with `assets/findings.md`.
+6. **Report** with this skill's template `assets/findings.md`, including its
+   Flags line for "may be influenced by code notes", "no automation" and
+   "depends on stand-in requirement".
 
 ## Rules
 
@@ -85,7 +94,13 @@ that depend on it.
 - In audit mode, a case with no test class is reviewed from its scenario text
   only and noted "no automation".
 - Never write scenarios, tests, heuristics files or approval records.
-- Every finding states what the user does and what the user would notice.
+- Every finding states what the user does and what the user would notice,
+  and rests on a gap between cases or a gap in the requirement.
+- Do not re-raise a finding listed under "Rejected findings" in the project
+  heuristics file (or one the user rejected earlier in the session); list it
+  under "Not raised (previously rejected)" instead.
+- Suggested additions describe the difference only; case and variant ids are
+  assigned by the authoring skill.
 - Do not repeat what a case already checks; cite the case id when close.
 - Prefer ten sharp findings over forty generic ones.
 
@@ -93,8 +108,9 @@ that depend on it.
 
 When the user accepts or rejects a finding for a reason that generalises, offer
 a new heuristic entry in the format of `references/heuristics.md` - generic
-ones for the kit file, product-specific ones for the project file. Write it
-only when the user asks.
+ones for the kit file, product-specific ones for the project file. When the
+reason is specific to one scenario, offer a "Rejected findings" line for the
+project file instead. Write either only when the user asks.
 
 ## Completion
 
@@ -102,4 +118,5 @@ Report the mode, the sources read, the findings table and the heuristics
 applied. Next permitted action: accepted `variant` and `new-case-in-inventory`
 findings go into the grill brief or the scenario through the authoring skill;
 `outside-inventory` findings go to `coverage-backlog`; `question` findings go
-to `source-of-truth`.
+to `source-of-truth`. When a finding is accepted only in part, the accepted part
+follows its route and the rest counts as rejected.
