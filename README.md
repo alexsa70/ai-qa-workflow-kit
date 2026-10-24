@@ -209,6 +209,72 @@ labels. If the launcher itself crashes mid-PR, the kept worktree blocks that
 pull request on later runs until a human pushes or discards its work and
 removes the worktree (`git worktree remove`).
 
+### Where To Run
+
+"Night shift" means *unattended*, not *at night*. `bin/qa-night` is a plain
+script: it runs only while the machine that started it is awake. That machine
+must reach everything a live run needs — the target checkout, the project's
+test environment (VPN or cluster access), its secrets, a `gh` login that can
+see the target repository, and a logged-in `claude`. Hosted cloud agents
+usually cannot reach a private test environment, so they are not an option
+for live runs.
+
+1. **Daytime, while you do other work (start here).** Run it in a separate
+   terminal before a meeting or lunch; `caffeinate` keeps a Mac awake for the
+   run only:
+
+   ```bash
+   caffeinate -i bin/qa-night /path/to/target
+   ```
+
+   No setup beyond the launcher itself; reports wait in the pull requests.
+
+2. **Your workstation, on a schedule.** A `launchd` agent starts the launcher
+   and `pmset` wakes the Mac shortly before. The Mac must stay on power; with
+   the lid closed it sleeps unless an external display is attached; the VPN
+   must survive the night, which is usually the weakest link. Example
+   `~/Library/LaunchAgents/local.qa-night.plist` (02:00 daily):
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+   <plist version="1.0">
+   <dict>
+     <key>Label</key><string>local.qa-night</string>
+     <key>ProgramArguments</key>
+     <array>
+       <string>/bin/bash</string>
+       <string>-lc</string>
+       <string>caffeinate -i /path/to/ai-qa-workflow-kit/bin/qa-night /path/to/target</string>
+     </array>
+     <key>StartCalendarInterval</key>
+     <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>0</integer></dict>
+     <key>StandardOutPath</key><string>/tmp/qa-night.out</string>
+     <key>StandardErrorPath</key><string>/tmp/qa-night.err</string>
+   </dict>
+   </plist>
+   ```
+
+   ```bash
+   launchctl load ~/Library/LaunchAgents/local.qa-night.plist
+   sudo pmset repeat wakeorpoweron MTWRF 01:55:00
+   ```
+
+   `bash -lc` loads your login shell so `gh`, `claude`, `python3` and
+   `gtimeout` are on `PATH`. Check `/tmp/qa-night.err` and
+   `~/.qa-night/runs/` the next morning.
+
+3. **An always-on machine (once option 1 pays off).** A devbox or CI agent
+   that already reaches the test environment. It needs a kit checkout, the
+   target checkout with its `ai-workflow/project-context.md` and secrets, a
+   `claude` API key and a `gh` token that may push to the target and comment
+   on its pull requests. This is the most reliable option, but it puts an
+   unattended agent with push rights on shared infrastructure: agree it with
+   the team, and make branch protection on the default branch mandatory.
+
+Track `done` versus `blocked` labels and their reasons for a few weeks on
+option 1 before investing in option 3.
+
 ## Design Documents
 
 - `docs/architecture.md` defines the component boundaries.
