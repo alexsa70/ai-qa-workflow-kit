@@ -15,3 +15,11 @@ Use the same entry format as the kit file. The example below is fictional.
 - **Typical failure:** both names shown, or the files counted twice in search.
 - **Technique:** state
 - **Source:** interview: 2026-10-23
+
+## Rejected findings
+
+Findings the user turned down for one scenario, so `blackbox-review` does not
+raise them again. One line each:
+`- <scenario or case id> | <finding, short> | <why rejected> | <date>`
+
+- CASE-01 | retry after timeout creates a duplicate | duplicates are merged by design (product decision) | 2026-10-24
