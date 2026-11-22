@@ -35,6 +35,13 @@ source ~/.zshrc
 The target path is required as the first argument or via `QA_KIT_TARGET`.
 The tool can be selected via `QA_KIT_TOOL`.
 
+Before launching, `qa-kit` keeps the kit current: it fetches `origin/main` and,
+when the kit's `main` is behind, fast-forwards it and restarts with the new
+launcher. It never blocks the launch - when offline, on another branch, with
+local commits on `main`, or with local edits a fast-forward would overwrite, it
+prints a warning and starts the local kit as is. Set `QA_KIT_NO_UPDATE=1` to
+skip the check.
+
 ## Cowork (desktop)
 
 You cannot pass CLI args, so:

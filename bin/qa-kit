@@ -42,6 +42,42 @@ fi
 # would otherwise reach the model as the kit dir itself.
 TARGET="$(cd "$TARGET" && pwd)"
 
+# Keep the kit current on every machine: fast-forward the kit's main to
+# origin/main before launching. Never blocks the launch - offline, a feature
+# branch, a diverged main or local edits that would be overwritten only warn.
+# Opt out with QA_KIT_NO_UPDATE=1.
+update_kit() {
+  [ "${QA_KIT_NO_UPDATE:-}" = "1" ] && return 0
+  [ "${QA_KIT_UPDATED:-}" = "1" ] && return 0
+  git -C "$KIT_DIR" rev-parse --git-dir >/dev/null 2>&1 || return 0
+  local branch before after
+  branch="$(git -C "$KIT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null)" || return 0
+  if ! GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o ConnectTimeout=5 -o BatchMode=yes}" \
+       git -C "$KIT_DIR" fetch --quiet origin main 2>/dev/null; then
+    echo "qa-kit: warn - could not reach origin, launching the local kit as is" >&2
+    return 0
+  fi
+  if [ "$branch" != "main" ]; then
+    echo "qa-kit: warn - kit is on '$branch', not main; not updating" >&2
+    return 0
+  fi
+  before="$(git -C "$KIT_DIR" rev-parse HEAD)"
+  [ "$before" = "$(git -C "$KIT_DIR" rev-parse origin/main)" ] && return 0
+  if ! git -C "$KIT_DIR" merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+    echo "qa-kit: warn - local main has commits not on origin/main; not updating" >&2
+    return 0
+  fi
+  if ! git -C "$KIT_DIR" merge --ff-only --quiet origin/main >/dev/null 2>&1; then
+    echo "qa-kit: warn - kit is behind origin/main but local edits block a fast-forward; launching as is" >&2
+    return 0
+  fi
+  after="$(git -C "$KIT_DIR" rev-parse --short HEAD)"
+  echo "qa-kit: kit updated to $after" >&2
+  # The running script may be the old version; restart with the new one.
+  exec env QA_KIT_UPDATED=1 "$KIT_DIR/bin/qa-kit" "$@"
+}
+update_kit "$@"
+
 CONTEXT="$TARGET/ai-workflow/project-context.md"
 if [ ! -f "$CONTEXT" ]; then
   echo "qa-kit: project context is missing: $CONTEXT" >&2
