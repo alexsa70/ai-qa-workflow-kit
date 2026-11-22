@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bug Report"
+  short_description: "Verdict first, then a lean tracker-ready bug draft"
+  default_prompt: "Use $bug-report to check this observation against the sources and, if it is a product bug, write a bug draft."

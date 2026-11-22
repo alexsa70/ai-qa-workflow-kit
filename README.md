@@ -15,7 +15,7 @@ The kit separates:
 This version contains the reusable QA Orchestrator, the `qa-review-gate`
 specialist agent, and the `api-layered-architecture`, `source-of-truth`,
 `feature-stp`, `test-design`, `test-implementation`, `code-review`,
-`bug-fixing`, `coverage-matrix`, `client-schema-sync`, `testmo-csv`, and
+`bug-fixing`, `bug-report`, `coverage-matrix`, `client-schema-sync`, `testmo-csv`, and
 `destructive-safety` skills, plus the four coverage pipeline skills
 `coverage-backlog`, `requirement-grill`, `blackbox-review` and `night-shift`.
 It also ships Claude Code hooks under `hooks/` (active in kit sessions), the
@@ -147,14 +147,21 @@ ai-qa-workflow-kit/
 │   │   │   └── claude.yaml
 │   │   └── assets/
 │   │       └── night-prompt.md
-│   └── feature-stp/
+│   ├── feature-stp/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── openai.yaml
+│   │   │   └── claude.yaml
+│   │   └── assets/
+│   │       ├── stp-template.md
+│   │       └── worked-example.md
+│   └── bug-report/
 │       ├── SKILL.md
 │       ├── agents/
 │       │   ├── openai.yaml
 │       │   └── claude.yaml
 │       └── assets/
-│           ├── stp-template.md
-│           └── worked-example.md
+│           └── bug-draft.md
 ├── docs/
 │   ├── architecture.md
 │   ├── component-inventory.md

@@ -225,6 +225,18 @@ fix scope. It must not weaken assertions, hide product bugs, update approval
 records, or change expected behavior without `source-of-truth` and renewed
 design approval.
 
+Use `bug-report` when:
+
+- `bug-fixing` classified a failure as a product bug;
+- a live run or a person observed behaviour that may be a product bug.
+
+`bug-report` reaches a verdict against the authority order first; only a
+product bug gets a Markdown draft in `bug.output_dir` (field map, lean body,
+investigation evidence for a first comment). A test-case mismatch goes to
+`test-design`, a source conflict to `source-of-truth`. It never writes to the
+tracker; filing is the user's or a project tool's step, after
+`qa-review-gate` with the `pre-external-write` lens.
+
 Use `client-schema-sync` when:
 
 - the backend's public API contract may have changed since the project's
