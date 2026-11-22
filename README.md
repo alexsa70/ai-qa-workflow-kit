@@ -39,7 +39,7 @@ ai-qa-workflow-kit/
 │   ├── qa-orchestrator.md
 │   └── qa-review-gate.md         # adversarial PASS|EDIT|FAIL gate
 ├── bin/
-│   ├── qa-kit                    # client governed by the kit only
+│   ├── qa-kit                    # client governed by the kit only; self-updates main
 │   ├── qa-night                  # night shift launcher
 │   ├── qa-worktree               # new branch in its own worktree
 │   └── lib/
