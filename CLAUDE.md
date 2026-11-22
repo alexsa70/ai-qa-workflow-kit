@@ -33,15 +33,8 @@ should be captured into that vault by the configured hooks.
 
 ## Platform Notes
 
-- Skills live under `skills/<name>/SKILL.md`. The `name` and `description`
-  frontmatter is the shared, platform-neutral definition Claude reads to decide
-  when to invoke a skill.
-- Each skill carries platform launch metadata under `skills/<name>/agents/`:
-  `claude.yaml` for Claude, `openai.yaml` for Codex / OpenAI. The two files
-  describe the same skill and must stay consistent.
-- Reusable specialist agents live under `agents/` alongside the orchestrator
-  (currently `qa-review-gate`, an adversarial PASS|EDIT|FAIL review gate). Like
-  the orchestrator, they carry no project-specific paths, commands, or services.
+- A skill's `skills/<name>/agents/claude.yaml` and `openai.yaml` describe the
+  same skill and must stay consistent.
 - `.claude/agents/qa-review-gate.md` is the Claude runtime launch of
   `agents/qa-review-gate.md`: a thin, read-only (`Read`, `Grep`, `Glob`)
   subagent wrapper that loads the role file and runs it in a separate context.
@@ -49,7 +42,10 @@ should be captured into that vault by the configured hooks.
   tool (`subagent_type: qa-review-gate`) and pass the artifact, pending
   transition, lens, authority order, and approved contract or scope. The role
   file stays the single source of truth; do not copy its rules into the wrapper.
-- `hooks/` ships opt-in, project-agnostic Claude Code `PreToolUse` hooks. They
-  are inert until wired into a `.claude/settings.json`; see `hooks/README.md`.
+- `.claude/agents/qa-blackbox-reviewer.md` launches the `blackbox-review` skill
+  the same way, in a fresh read-only context that has not seen product code.
+  Dispatch it (`subagent_type: qa-blackbox-reviewer`) whenever the work routes
+  to `blackbox-review`; pass the mode, requirement, inventory path, case files,
+  heuristics files and the target's context path, never code paths.
 - When a request targets another repository, that repository's own `CLAUDE.md`
   and `AGENTS.md` should point here and to its `ai-workflow/project-context.md`.
