@@ -49,6 +49,7 @@ and AI-platform details.
 | Coverage backlog | Skill | Kit (`skills/coverage-backlog`) | Computed, never-stored kanban over uncovered inventory units | Coverage command and inventory paths via project context | `adopt` | P1 |
 | Requirement grill | Skill | Kit (`skills/requirement-grill`) | One-question-at-a-time alignment before a claim | Authoring skill named via project context | `adopt` | P1 |
 | Black-box review | Skill | Kit (`skills/blackbox-review`) | User-side additions without reading code; heuristics files | Product heuristics in an untracked project file | `adopt` | P1 |
+| Feature STP | Skill | Kit (`skills/feature-stp`), generalized from a project `feature-stp` | Product-facing STP: spec to requirements, design to decisions, few readable cases, Markdown only | Spec/design sources, output dir, style guide via project context | `adopt` | P1 |
 | Night shift | Skill + launcher | Kit (`skills/night-shift`, `bin/qa-night`) | AFK implementation of confirmed scenario PRs, sequential, fresh context | Commands, labels, permissions via project context | `adopt` | P2 |
 
 ## Agent Candidates
