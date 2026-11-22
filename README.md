@@ -17,9 +17,9 @@ specialist agent, and the `api-layered-architecture`, `source-of-truth`,
 `test-design`, `test-implementation`, `code-review`, `bug-fixing`,
 `coverage-matrix`, `client-schema-sync`, `testmo-csv`, and `destructive-safety`
 skills, plus the four coverage pipeline skills `coverage-backlog`,
-`requirement-grill`, `blackbox-review` and `night-shift`. It also ships opt-in
-Claude Code hooks under `hooks/`, the `bin/qa-kit` and `bin/qa-night`
-launchers, and the `templates/project-heuristics.md` template for project
+`requirement-grill`, `blackbox-review` and `night-shift`. It also ships
+Claude Code hooks under `hooks/` (active in kit sessions), the `bin/qa-kit` and
+`bin/qa-night` launchers, the `bin/qa-worktree` branch helper, and the `templates/project-heuristics.md` template for project
 black-box heuristics. The approved Test Design Contract remains the durable
 artifact across architecture mapping, design, implementation, verification,
 review, and repair.
@@ -29,6 +29,7 @@ ai-qa-workflow-kit/
 ├── AGENTS.md                     # Codex / OpenAI entry point
 ├── CLAUDE.md                     # Claude entry point (twin of AGENTS.md)
 ├── .claude/
+│   ├── settings.json             # wires hooks/ for sessions started in the kit
 │   └── agents/
 │       └── qa-review-gate.md     # Claude subagent wrapper for the gate
 ├── README.md
@@ -38,12 +39,15 @@ ai-qa-workflow-kit/
 ├── bin/
 │   ├── qa-kit                    # client governed by the kit only
 │   ├── qa-night                  # night shift launcher
+│   ├── qa-worktree               # new branch in its own worktree
 │   └── lib/
 │       ├── pipeline_config.py
 │       └── select_ready_prs.py
-├── hooks/                        # opt-in Claude Code PreToolUse hooks
+├── hooks/                        # Claude Code PreToolUse hooks
 │   ├── README.md                 # wiring + configuration
+│   ├── lib/target-repo.sh        # shared: which repo a command targets
 │   ├── pre-commit-branch-guard.sh
+│   ├── branch-needs-worktree.sh
 │   ├── skill-size-check.sh
 │   └── pre-commit-check.sh
 ├── skills/
@@ -172,17 +176,25 @@ and skills — use `bin/qa-kit` or follow `docs/kit-only-mode.md`.
 
 ## Hooks
 
-`hooks/` ships opt-in, project-agnostic Claude Code `PreToolUse` hooks (plain
-`git` + POSIX shell, no external tooling):
+`hooks/` ships project-agnostic Claude Code `PreToolUse` hooks (plain `git` +
+POSIX shell, no external tooling):
 
 - `pre-commit-branch-guard.sh` — hard-blocks a commit on a protected branch
   (`main`/`master`), warns which branch a commit lands on otherwise;
 - `skill-size-check.sh` — blocks a staged `SKILL.md` over a configurable line
   cap (default 200), so an oversized skill is split rather than padded;
+- `branch-needs-worktree.sh` — blocks creating a branch in place
+  (`git checkout -b`, `git switch -c`, `git branch <name>`) and points at
+  `bin/qa-worktree <target-path> <branch> [base]`, which creates the branch in its
+  own worktree and links or copies the local files listed in the target's
+  project context (section "Worktrees");
 - `pre-commit-check.sh` — advisory warnings on bulk staging and large diffs
   that likely contain generated artifacts.
 
-They are not active until wired into a `.claude/settings.json`. See
+They are wired in the kit's own `.claude/settings.json`, so they are active in
+every session started in the kit (including `bin/qa-kit`). Each hook resolves the
+repository a command targets (`git -C <dir>`, `cd <dir>`), so in kit-only mode
+it checks the target project, not the kit. Other repositories opt in; see
 `hooks/README.md` for the wiring snippet and per-hook configuration.
 
 ## Night Shift Launcher

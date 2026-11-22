@@ -9,11 +9,15 @@ blocks the action.
 |---|---|---|
 | `pre-commit-branch-guard.sh` | `git commit` | **Blocks** (exit 2) a commit on a protected branch (`main`/`master`); warns which branch a commit is landing on otherwise. Explicit escape hatch: prefix with `ALLOW_MAIN_COMMIT=1` to warn-and-allow an intentional direct-to-main commit. |
 | `skill-size-check.sh` | `git commit` | **Blocks** (exit 2) when a staged parent `SKILL.md` exceeds the line cap (default 200); hint to split into sub-skills. |
+| `branch-needs-worktree.sh` | `git checkout -b/-B`, `git switch -c/-C/--create`, `git branch <name>` | **Blocks** (exit 2) creating a branch in place; points at `bin/qa-worktree <target-path> <branch> [base]`. Listing, deleting, renaming and `git worktree add -b` pass. |
 | `pre-commit-check.sh` | `git commit`, `git add` | Advisory only. Warns on bulk `git add -A/./--all` with many untracked files, and on very large staged diffs that likely contain generated artifacts. |
 
-None of the hooks depend on external tooling — plain `git` + POSIX shell. All
-paths resolve from `git rev-parse --show-toplevel`, so the same scripts work in
-the kit's own repo and in any connected project.
+None of the hooks depend on external tooling — plain `git` + POSIX shell
+(`branch-needs-worktree.sh` uses `python3` to read the command when available).
+Each hook resolves the repository the command TARGETS through
+`lib/target-repo.sh`: an explicit `git -C <dir>`, else the last `cd <dir>`, else
+the payload cwd. In kit-only mode the session cwd is the kit while git commands
+run in the target project, so the checks apply to the target, not the kit.
 
 ## Configuration
 
@@ -30,8 +34,11 @@ conventions.
 
 ## Wiring
 
-Hooks are opt-in. Add them to a `.claude/settings.json` — either in the kit
-repo, or in a connected project pointing at the kit's absolute path. Make the
+In the kit itself the hooks are already wired in `.claude/settings.json`
+(paths via `$CLAUDE_PROJECT_DIR`), so every session started in the kit — including
+`bin/qa-kit` — runs them on any machine after a clone. For another repository
+they are opt-in: add them to its `.claude/settings.json`, pointing at the kit's
+absolute path. Make the
 scripts executable first:
 
 ```bash
@@ -48,6 +55,7 @@ Then merge into `.claude/settings.json`:
         "matcher": "Bash",
         "hooks": [
           { "type": "command", "command": "bash /absolute/path/to/ai-qa-workflow-kit/hooks/pre-commit-branch-guard.sh" },
+          { "type": "command", "command": "bash /absolute/path/to/ai-qa-workflow-kit/hooks/branch-needs-worktree.sh" },
           { "type": "command", "command": "bash /absolute/path/to/ai-qa-workflow-kit/hooks/skill-size-check.sh" },
           { "type": "command", "command": "bash /absolute/path/to/ai-qa-workflow-kit/hooks/pre-commit-check.sh 2>/dev/null || true" }
         ]
@@ -57,7 +65,7 @@ Then merge into `.claude/settings.json`:
 }
 ```
 
-The two blocking hooks (`branch-guard`, `skill-size-check`) run without a
+The blocking hooks (`branch-guard`, `branch-needs-worktree`, `skill-size-check`) run without a
 `|| true` guard so their exit code 2 reaches Claude Code. The advisory hook is
 guarded so a transient error never blocks a commit.
 

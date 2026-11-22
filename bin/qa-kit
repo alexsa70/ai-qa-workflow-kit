@@ -38,6 +38,10 @@ if [ ! -d "$TARGET" ]; then
   exit 1
 fi
 
+# Absolute path: the script cd's into the kit below, so a relative target ("."),
+# would otherwise reach the model as the kit dir itself.
+TARGET="$(cd "$TARGET" && pwd)"
+
 CONTEXT="$TARGET/ai-workflow/project-context.md"
 if [ ! -f "$CONTEXT" ]; then
   echo "qa-kit: project context is missing: $CONTEXT" >&2

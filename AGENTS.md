@@ -33,5 +33,7 @@ read-only wrapper `.claude/agents/qa-review-gate.md`. Codex has no equivalent
 launch in this kit: apply `agents/qa-review-gate.md` as a role, and do not claim
 it ran as an independent agent.
 
-`hooks/` ships opt-in, project-agnostic Claude Code `PreToolUse` hooks. They are
-inert until wired into a `.claude/settings.json`; see `hooks/README.md`.
+`hooks/` ships project-agnostic Claude Code `PreToolUse` hooks. They are wired
+in the kit's `.claude/settings.json` (active in kit sessions) and opt-in for
+other repositories; see `hooks/README.md`. A new branch is created in its own
+worktree with `bin/qa-worktree <target-path> <branch> [base]`.
