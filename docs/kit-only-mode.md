@@ -62,7 +62,9 @@ You cannot pass CLI args, so:
   .claude/skills, .claude/agents и корневой QA/CLAUDE.md. Это не касается
   .claude/agents самого kit: qa-review-gate — часть kit. Когда оркестратор
   направляет на review gate, в Claude запускай субагент qa-review-gate, в Codex
-  применяй роль agents/qa-review-gate.md.
+  применяй роль agents/qa-review-gate.md. Так же blackbox-review в Claude
+  запускай субагентом qa-blackbox-reviewer (свежий контекст, без кода
+  продукта), в Codex — в сессии, отметив, что ревью не независимое.
 - Для Testmo CSV игнорируй глобальный ~/.claude/CLAUDE.md и любые глобальные
   преференции по колонкам/формату — формат и процедуру бери ТОЛЬКО из kit-скилла
   testmo-csv (его SKILL.md + экстрактор scripts/tests_to_testmo_csv.py). Не строй

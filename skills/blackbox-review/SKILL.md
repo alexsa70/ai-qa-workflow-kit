@@ -22,6 +22,16 @@ Do not use it to decide a verdict on a transition (`qa-review-gate`), to
 resolve a disputed fact (`source-of-truth`), or to write the additions (the
 authoring skill named in `authoring.skill`).
 
+## Launch
+
+On Claude, run this review through the `qa-blackbox-reviewer` subagent
+(`.claude/agents/qa-blackbox-reviewer.md`), so it starts from a context that
+has not read the product code. Pass the mode, the requirement (fetched text or
+a file path), the inventory path, the case files, the heuristics files and the
+target's `project-context.md` path - never code paths. On Codex there is no
+such launch: apply this skill in the session, and say in the report header
+that the review was not independent of earlier code reading.
+
 ## Required Input
 
 - the mode: `proposed` or `audit`;

@@ -331,7 +331,7 @@ blocked.
 
 ## Agent Routing
 
-Beyond the skills above, the kit ships one specialist agent.
+Beyond the skills above, the kit ships two specialist agents.
 
 Use `qa-review-gate` when a consequential, hard-to-reverse transition needs an
 independent, adversarial go/no-go before it proceeds — a Test Design Contract
@@ -344,6 +344,14 @@ transitioning a case, running a destructive suite). Name the review lens
 work. For a small, low-risk change, proceed without a gate rather than adding
 ceremony. Route a factual claim the gate cannot establish through
 `source-of-truth`.
+
+Use `qa-blackbox-reviewer` whenever the work routes to `blackbox-review` on
+Claude. It runs that skill in a fresh, read-only context that has never seen
+the product code, so the review stays independent of the implementation. Pass
+the mode, requirement, inventory path, case files, heuristics files and the
+target's context path, never code paths. It returns the skill's findings
+report, not a verdict; acting on findings follows the skill's Completion
+routes.
 
 ## Artifact Rule
 
