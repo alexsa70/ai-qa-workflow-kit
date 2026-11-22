@@ -38,9 +38,13 @@ From `ai-workflow/project-context.md`:
 - section `Bug Report`:
   - `bug.output_dir` - where drafts are written (required);
   - `bug.tracker` - tracker and project the draft is meant for;
-  - `bug.parent` - parent issue or epic new bugs go under;
+  - `bug.parent` - parent issue or epic new bugs go under, or the rule that
+    finds it (for example "the current sprint's bug epic"); when a rule cannot
+    be resolved, ask instead of guessing;
   - `bug.priorities` - allowed priority values, highest first;
-  - `bug.native_fields` - values that live in tracker fields, never in the body;
+  - `bug.native_fields` - values that live in tracker fields, never in the
+    body, including conditional ones (for example a label that applies only to
+    bugs found after a deployment);
   - `bug.never_set` - fields left empty unless the user gives a value;
   - `bug.duplicate_search` - how to search open bugs (read-only query or
     command).
@@ -132,13 +136,12 @@ body, investigation evidence, duplicates, suggested follow-ups.
 ### 7. Gate and close
 
 Show the summary, field map and body. Revise until the user approves. Then the
-status becomes `approved` and the user or a project tool files it; this skill
-does not. If the user later gives the ticket key, record it in the header as
+status becomes `approved`. Filing is a separate step outside this skill: the
+user files it, or the session does after the user's separate approval and
+`qa-review-gate` with the `pre-external-write` lens, using the project's
+tracker tooling and the field map as written. If the user later gives the ticket key, record it in the header as
 `filed as <key>` and suggest the follow-ups (a regression test for the fixed
 behaviour, a test-case correction, a document fix).
-
-An external write later made from this draft goes through `qa-review-gate`
-with the `pre-external-write` lens.
 
 ## Output
 

@@ -234,8 +234,9 @@ Use `bug-report` when:
 product bug gets a Markdown draft in `bug.output_dir` (field map, lean body,
 investigation evidence for a first comment). A test-case mismatch goes to
 `test-design`, a source conflict to `source-of-truth`. It never writes to the
-tracker; filing is the user's or a project tool's step, after
-`qa-review-gate` with the `pre-external-write` lens.
+tracker itself. Filing the approved draft is a separate external write: the
+user's separate approval, then `qa-review-gate` with the `pre-external-write`
+lens, then the project's tracker tooling with the draft's field map.
 
 Use `client-schema-sync` when:
 

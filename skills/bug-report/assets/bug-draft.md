@@ -4,7 +4,7 @@
 - Status: draft | approved by <who>, <date> | filed as <key>
 - Project / area: <project>, <area>
 - Verdict: product bug
-- Next transition: user review -> filed by the user or a project tool
+- Next transition: user review -> separate approval + qa-review-gate -> filed
 
 ## Field map (tracker native fields)
 
