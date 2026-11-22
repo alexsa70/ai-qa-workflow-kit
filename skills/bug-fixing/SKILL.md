@@ -105,7 +105,8 @@ Stop instead of fixing when:
 - required secrets, credentials, or external systems are unavailable.
 
 For product bugs, produce a concise bug handoff with observed behavior,
-expected behavior, evidence, affected variants, and reproduction command.
+expected behavior, evidence, affected variants, and reproduction command; the
+handoff is the input for `bug-report`, which writes the tracker-ready draft.
 
 For contract mismatch, return the artifact to the design workflow; do not
 patch tests to match the new behavior without renewed approval.

@@ -50,6 +50,7 @@ and AI-platform details.
 | Requirement grill | Skill | Kit (`skills/requirement-grill`) | One-question-at-a-time alignment before a claim | Authoring skill named via project context | `adopt` | P1 |
 | Black-box review | Skill | Kit (`skills/blackbox-review`) | User-side additions without reading code; heuristics files | Product heuristics in an untracked project file | `adopt` | P1 |
 | Feature STP | Skill | Kit (`skills/feature-stp`), generalized from a project `feature-stp` | Product-facing STP: spec to requirements, design to decisions, few readable cases, Markdown only | Spec/design sources, output dir, style guide via project context | `adopt` | P1 |
+| Bug report | Skill | Kit (`skills/bug-report`), generalized from a project `file-bug` | Verdict against the authority order, then a lean tracker-ready draft; never writes to the tracker | Tracker, parent, priorities, fields, duplicate search via project context | `adopt` | P1 |
 | Night shift | Skill + launcher | Kit (`skills/night-shift`, `bin/qa-night`) | AFK implementation of confirmed scenario PRs, sequential, fresh context | Commands, labels, permissions via project context | `adopt` | P2 |
 
 ## Agent Candidates

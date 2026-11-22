@@ -163,6 +163,20 @@ required; the rest are optional.
 - stp.style_guide:
 - stp.handoff_skill: test-design
 
+## Bug Report
+
+Read by `bug-report`. One `- key: value` per line. `bug.output_dir` is
+required; the rest are optional. The skill only drafts; it never writes to the
+tracker.
+
+- bug.output_dir:
+- bug.tracker:
+- bug.parent:
+- bug.priorities:
+- bug.native_fields: summary, priority, parent, assignee
+- bug.never_set:
+- bug.duplicate_search:
+
 ## Coverage Pipeline
 
 Read by `coverage-backlog`, `requirement-grill`, `blackbox-review`,

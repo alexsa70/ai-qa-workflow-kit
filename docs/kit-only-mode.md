@@ -54,7 +54,8 @@ You cannot pass CLI args, so:
 - Используй ТОЛЬКО скиллы kit (api-layered-architecture, source-of-truth,
   test-design, test-implementation, code-review, bug-fixing, coverage-matrix,
   client-schema-sync, destructive-safety, testmo-csv, coverage-backlog,
-  requirement-grill, blackbox-review, night-shift, feature-stp).
+  requirement-grill, blackbox-review, night-shift, feature-stp,
+  bug-report).
 - Исключение: authoring-скилл, указанный в project-context (ключ
   authoring.skill), разрешён, когда его вызывает скилл coverage pipeline.
 - Игнорируй правила и инструменты target-проекта: его CLAUDE.md, AGENTS.md,
