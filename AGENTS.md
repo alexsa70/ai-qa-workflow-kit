@@ -31,7 +31,9 @@ the orchestrator, carry no project-specific paths, commands, or services.
 On Claude, `qa-review-gate` is also launched as a real subagent through the
 read-only wrapper `.claude/agents/qa-review-gate.md`. Codex has no equivalent
 launch in this kit: apply `agents/qa-review-gate.md` as a role, and do not claim
-it ran as an independent agent.
+it ran as an independent agent. Likewise `blackbox-review` runs on Claude through
+`.claude/agents/qa-blackbox-reviewer.md` (fresh context, no product code); on
+Codex apply the skill in the session and say it was not independent.
 
 `hooks/` ships project-agnostic Claude Code `PreToolUse` hooks. They are wired
 in the kit's `.claude/settings.json` (active in kit sessions) and opt-in for

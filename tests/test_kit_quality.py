@@ -109,6 +109,31 @@ class ClaudeSubagentTests(unittest.TestCase):
         self.assertIn("agents/qa-review-gate.md", wrapper.read_text(encoding="utf-8"))
 
 
+    def test_every_kit_subagent_is_read_only_and_points_at_its_source(self):
+        sources = {
+            "qa-review-gate": "agents/qa-review-gate.md",
+            "qa-blackbox-reviewer": "skills/blackbox-review/SKILL.md",
+        }
+        wrappers = sorted((ROOT / ".claude" / "agents").glob("*.md"))
+        self.assertEqual(sorted(w.stem for w in wrappers), sorted(sources))
+        for wrapper in wrappers:
+            meta = frontmatter(wrapper)
+            self.assertEqual(meta.get("name"), wrapper.stem)
+            self.assertTrue(meta.get("description"), wrapper.name)
+            tools = {tool.strip() for tool in meta.get("tools", "").split(",") if tool.strip()}
+            self.assertTrue(tools, wrapper.name)
+            self.assertFalse(tools & {"Edit", "Write", "NotebookEdit", "Bash"}, wrapper.name)
+            source = sources[wrapper.stem]
+            self.assertTrue((ROOT / source).is_file(), source)
+            self.assertIn(source, wrapper.read_text(encoding="utf-8"))
+
+    def test_blackbox_review_names_its_launch_and_orchestrator_routes_to_it(self):
+        skill = (ROOT / "skills/blackbox-review/SKILL.md").read_text(encoding="utf-8")
+        orchestrator = (ROOT / "agents/qa-orchestrator.md").read_text(encoding="utf-8")
+        self.assertIn("qa-blackbox-reviewer", skill)
+        self.assertIn("qa-blackbox-reviewer", orchestrator)
+
+
 class ScriptSmokeTests(unittest.TestCase):
     def run_script(self, relative_path, *args):
         return subprocess.run(

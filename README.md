@@ -32,7 +32,8 @@ ai-qa-workflow-kit/
 ├── .claude/
 │   ├── settings.json             # wires hooks/ for sessions started in the kit
 │   └── agents/
-│       └── qa-review-gate.md     # Claude subagent wrapper for the gate
+│       ├── qa-review-gate.md     # Claude subagent wrapper for the gate
+│       └── qa-blackbox-reviewer.md  # fresh-context launch of blackbox-review
 ├── README.md
 ├── agents/
 │   ├── qa-orchestrator.md
@@ -186,6 +187,9 @@ On Claude, `qa-review-gate` runs as a real subagent in a separate, read-only
 context through `.claude/agents/qa-review-gate.md`, a thin wrapper that loads
 `agents/qa-review-gate.md`. It is picked up when Claude runs with the kit as the
 working directory (as `bin/qa-kit` does). On Codex the gate is applied as a role.
+`blackbox-review` is launched the same way through
+`.claude/agents/qa-blackbox-reviewer.md`, so the review starts from a context
+that has not read the product code; on Codex it runs in the session.
 
 To run a client governed by the kit only — ignoring a target repo's own rules
 and skills — use `bin/qa-kit` or follow `docs/kit-only-mode.md`.
