@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature STP"
+  short_description: "Product-facing test plan from spec and design"
+  default_prompt: "Use the feature-stp skill to write a Markdown test plan for this feature from its product spec and design document."

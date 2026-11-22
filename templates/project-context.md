@@ -152,6 +152,17 @@ question.
 - Cleanup repair policy:
 - Artifact update rule:
 
+## Feature STP
+
+Read by `feature-stp`. One `- key: value` per line. `stp.output_dir` is
+required; the rest are optional.
+
+- stp.spec_source:
+- stp.design_source:
+- stp.output_dir:
+- stp.style_guide:
+- stp.handoff_skill: test-design
+
 ## Coverage Pipeline
 
 Read by `coverage-backlog`, `requirement-grill`, `blackbox-review`,

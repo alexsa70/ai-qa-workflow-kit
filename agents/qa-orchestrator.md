@@ -119,6 +119,20 @@ Use `source-of-truth` when:
 If `source-of-truth` is not installed, stop and produce a clear research
 handoff. Do not simulate an unavailable skill by guessing.
 
+Use `feature-stp` when:
+
+- a new feature needs a product-facing test plan (STP) for a lead, product or
+  manual tester, before cases or automation;
+- a draft plan reads like the backend contract and must be rewritten from the
+  product spec and the design.
+
+`feature-stp` maps the product spec to requirements and the design to
+implementation decisions, proposes a few cases only from those two lists, waits
+for the user before writing, and writes one Markdown file to `stp.output_dir`.
+It never publishes the plan, writes tests or creates test-management cases. An
+approved STP is the requirement source for `stp.handoff_skill` (default
+`test-design`).
+
 Use `test-design` when:
 
 - implementation requires an agreed test scope;
