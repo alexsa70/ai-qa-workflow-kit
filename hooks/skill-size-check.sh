@@ -11,9 +11,10 @@
 
 INPUT=$(cat)
 
-echo "$INPUT" | grep -qE 'git commit' || exit 0
+. "$(dirname "${BASH_SOURCE[0]}")/lib/target-repo.sh"
+is_git_cmd "$INPUT" "commit" || exit 0
 
-REPO="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+REPO="$(target_repo "$INPUT")" || exit 0
 STAGED=$(git -C "$REPO" diff --cached --name-only --diff-filter=ACM 2>/dev/null | \
   grep -E '^(\.claude/)?skills/[^/]+/SKILL\.md$' || true)
 

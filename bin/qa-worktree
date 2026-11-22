@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# qa-worktree — create a new branch in its own git worktree.
+#
+# Usage:
+#   qa-worktree <target-path> <branch> [base]
+#
+# <target-path> is the same path qa-kit takes (a repo root or a sub-project such
+# as <repo>/api-tests). The script resolves its git repository, creates
+# <branch> from [base] in a new worktree, links or copies the untracked local
+# files the project needs, and prints the EQUIVALENT target path inside the new
+# worktree on stdout (e.g. <worktree>/api-tests). Use that path as the target.
+#
+# Per-project settings come from <target-path>/ai-workflow/project-context.md,
+# section "## Worktrees" (all optional, values may be wrapped in backticks):
+#   - Default base: origin/main            default: origin/HEAD, else origin/main
+#   - Worktree root: ~/workspace           default: parent dir of the repository
+#   - Worktree name: {repo}-{slug}         {repo} = repo dir name, {slug} = last branch segment
+#   - Link into worktree: .env, api-tests/.venv    repo-root-relative, symlinked
+#   - Copy into worktree: api-tests/ai-workflow    copied; the main checkout's
+#                                                  absolute path is rewritten to
+#                                                  the worktree's in text files
+# Linked/copied paths must be git-ignored WITHOUT a trailing slash (a symlink is
+# not a directory to git); the script warns when one shows up in git status.
+
+set -euo pipefail
+
+usage() { echo "usage: qa-worktree <target-path> <branch> [base]" >&2; }
+case "${1:-}" in -h|--help) usage; exit 0 ;; esac
+[ $# -ge 2 ] || { usage; exit 1; }
+
+TARGET="$(cd "$1" && pwd)" || { echo "qa-worktree: target not found: $1" >&2; exit 1; }
+BRANCH="$2"
+BASE="${3:-}"
+
+REPO="$(git -C "$TARGET" rev-parse --show-toplevel)"
+SUB="${TARGET#"$REPO"}"; SUB="${SUB#/}"
+CONTEXT="$TARGET/ai-workflow/project-context.md"
+
+# Read "- <Key>: <value>" from the Worktrees section of the project context.
+setting() {
+  [ -f "$CONTEXT" ] || return 0
+  awk -v key="$1" '
+    /^## /{ in_s = ($0 ~ /^## Worktrees[[:space:]]*$/); next }
+    in_s && index($0, "- " key ":") == 1 { sub("^- " key ":[[:space:]]*", ""); print; exit }
+  ' "$CONTEXT" | tr -d '`' | sed -E 's/[[:space:]]+$//'
+}
+expand_home() { case "$1" in "~") echo "$HOME" ;; "~/"*) echo "$HOME/${1#\~/}" ;; *) echo "$1" ;; esac; }
+
+case "$BRANCH" in
+  main|master) echo "qa-worktree: refusing to create '$BRANCH'" >&2; exit 1 ;;
+esac
+if git -C "$REPO" show-ref --verify --quiet "refs/heads/$BRANCH"; then
+  echo "qa-worktree: branch '$BRANCH' already exists (git -C $REPO worktree add <path> $BRANCH)" >&2
+  exit 1
+fi
+
+[ -n "$BASE" ] || BASE="$(setting "Default base")"
+if [ -z "$BASE" ]; then
+  BASE="$(git -C "$REPO" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)"
+fi
+
+ROOT="$(expand_home "$(setting "Worktree root")")"
+[ -n "$ROOT" ] || ROOT="$(dirname "$REPO")"
+NAME="$(setting "Worktree name")"
+[ -n "$NAME" ] || NAME="{repo}-{slug}"
+SLUG="${BRANCH##*/}"
+NAME="${NAME//\{repo\}/$(basename "$REPO")}"
+NAME="${NAME//\{slug\}/$SLUG}"
+WT="$ROOT/$NAME"
+[ -e "$WT" ] && { echo "qa-worktree: path already exists: $WT" >&2; exit 1; }
+
+case "$BASE" in
+  origin/*) git -C "$REPO" fetch --quiet origin "${BASE#origin/}" \
+              || echo "qa-worktree: warn - fetch failed, using cached $BASE" >&2 ;;
+esac
+
+git -C "$REPO" worktree add -b "$BRANCH" "$WT" "$BASE" >&2
+WT="$(cd "$WT" && pwd)"
+
+list() { setting "$1" | tr ',' '\n' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' | grep -v '^$' || true; }
+CREATED=""
+
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  if [ -e "$REPO/$f" ] && [ ! -e "$WT/$f" ] && [ ! -L "$WT/$f" ]; then
+    mkdir -p "$(dirname "$WT/$f")"
+    src="$REPO/$f"; [ -L "$src" ] && src="$(cd "$(dirname "$src")" && pwd -P)/$(basename "$src")"
+    ln -s "$src" "$WT/$f" && echo "qa-worktree: linked $f" >&2
+    CREATED="$CREATED $f"
+  fi
+done < <(list "Link into worktree")
+
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  if [ -e "$REPO/$f" ] && [ ! -e "$WT/$f" ]; then
+    mkdir -p "$(dirname "$WT/$f")"
+    cp -R "$REPO/$f" "$WT/$f"
+    # Point absolute references to the main checkout at the worktree instead.
+    find "$WT/$f" -type f \( -name '*.md' -o -name '*.json' -o -name '*.yaml' -o -name '*.yml' -o -name '*.txt' \) -print0 \
+      | xargs -0 perl -pi -e 'BEGIN { ($from, $to) = (shift, shift) } s/\Q$from\E(?=[\/`"'"'"'\s)\]]|$)/$to/g' "$REPO" "$WT"
+    echo "qa-worktree: copied $f" >&2
+    CREATED="$CREATED $f"
+  fi
+done < <(list "Copy into worktree")
+
+for f in $CREATED; do
+  if git -C "$WT" status --porcelain -- "$f" 2>/dev/null | grep -q .; then
+    echo "qa-worktree: warn - '$f' shows in git status; add '/$f' (no trailing slash) to $(git -C "$REPO" rev-parse --git-common-dir)/info/exclude" >&2
+  fi
+done
+
+if command -v direnv >/dev/null 2>&1 && [ -f "$WT/.envrc" ]; then
+  direnv allow "$WT" >/dev/null 2>&1 || true
+fi
+
+if [ -n "$SUB" ]; then echo "$WT/$SUB"; else echo "$WT"; fi

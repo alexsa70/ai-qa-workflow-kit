@@ -33,6 +33,18 @@
 - Smallest test verification:
 - Full test suite:
 
+## Worktrees
+
+Read by `bin/qa-worktree <target-path> <branch> [base]`. Every new branch gets
+its own worktree. All keys are optional; paths are repository-root-relative.
+Linked and copied paths must be git-ignored without a trailing slash.
+
+- Default base:
+- Worktree root:
+- Worktree name: {repo}-{slug}
+- Link into worktree:
+- Copy into worktree:
+
 ## External Sources
 
 - Backend repository:

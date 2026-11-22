@@ -16,26 +16,12 @@
 
 INPUT=$(cat)
 
-echo "$INPUT" | grep -qE '(^|[[:space:];&|("])git[[:space:]]+commit([[:space:]"]|$)' || exit 0
+. "$(dirname "${BASH_SOURCE[0]}")/lib/target-repo.sh"
+is_git_cmd "$INPUT" "commit" || exit 0
 
-# Resolve the repo the commit actually TARGETS, not the hook's own cwd. In a
-# multi-repo setup the session cwd (where this hook runs) can differ from the
-# directory the command commits in (e.g. `cd /path/to/other-repo && git commit`).
-# Derive the target dir from the command itself, in priority order:
-#   1. an explicit `git -C <dir>`;
-#   2. the last `cd <dir>` before the commit;
-#   3. the hook payload's own "cwd";
-#   4. $PWD.
-TARGET="$(printf '%s' "$INPUT" | grep -oE 'git[[:space:]]+-C[[:space:]]+[^[:space:]"]+' | head -n1 | sed -E 's/^git[[:space:]]+-C[[:space:]]+//')"
-if [ -z "$TARGET" ]; then
-  TARGET="$(printf '%s' "$INPUT" | grep -oE '(^|[;&|"[:space:]])cd[[:space:]]+[^[:space:]"&;|]+' | tail -n1 | sed -E 's/.*cd[[:space:]]+//')"
-fi
-if [ -z "$TARGET" ]; then
-  TARGET="$(printf '%s' "$INPUT" | sed -nE 's/.*"cwd"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
-fi
-[ -z "$TARGET" ] && TARGET="$PWD"
-
-REPO="$(git -C "$TARGET" rev-parse --show-toplevel 2>/dev/null)" || exit 0
+# Resolve the repo the commit actually TARGETS (git -C / cd / payload cwd), not
+# the hook's own cwd: in kit-only mode the session cwd is the kit.
+REPO="$(target_repo "$INPUT")" || exit 0
 BRANCH="$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null)" || exit 0
 
 PROTECTED_BRANCHES="${PROTECTED_BRANCHES:-main master}"
@@ -46,7 +32,7 @@ for P in $PROTECTED_BRANCHES; do
       exit 0
     fi
     printf "BLOCKED: attempted commit on '%s'. Rule: never commit directly to a protected branch.\n" "$BRANCH" >&2
-    printf "Create a feature branch first: git checkout -b <topic>/<scope>\n" >&2
+    printf "Create the feature branch in its own worktree: bin/qa-worktree <target-path> <topic>/<scope> (in the kit)\n" >&2
     printf "If a direct-to-main commit is intentional and explicitly authorized, re-run with: ALLOW_MAIN_COMMIT=1 git commit ...\n" >&2
     exit 2
   fi
