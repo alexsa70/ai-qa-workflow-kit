@@ -38,6 +38,8 @@ should be captured into that vault by the configured hooks.
 - `.claude/agents/qa-review-gate.md` is the Claude runtime launch of
   `agents/qa-review-gate.md`: a thin, read-only (`Read`, `Grep`, `Glob`)
   subagent wrapper that loads the role file and runs it in a separate context.
+  It runs on Claude Fable 5.2 (`model: fable`), not the session's model, so the
+  gate reads the artifact with a different model from the one that wrote it.
   When the orchestrator routes to `qa-review-gate`, dispatch it with the Agent
   tool (`subagent_type: qa-review-gate`) and pass the artifact, pending
   transition, lens, authority order, and approved contract or scope. The role
